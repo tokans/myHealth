@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HeartPulse, Printer, Plus, X, Phone, Mail, Pencil } from "lucide-react";
+import { HeartPulse, Printer, Plus, X, Phone, Mail, Pencil, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { getProfile, updateEmergency, type Profile, type EmergencyInfo } from "@
 import { listBaseline, addBaseline, deleteBaseline, type BaselineItem } from "@/db/baseline";
 import { listMedications, type Medication } from "@/db/medications";
 import { telHref, mailtoHref, ageFromDob, EMERGENCY_DISCLAIMER } from "@/lib/emergency";
+import { exportVisitReport } from "@/lib/visitReport";
 import { cn } from "@/lib/utils";
 
 export default function Ice() {
@@ -56,6 +57,9 @@ function IceInner() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setEditing((e) => !e)}>
             <Pencil className="h-4 w-4" /> {editing ? "Done" : "Edit"}
+          </Button>
+          <Button variant="secondary" onClick={() => void exportVisitReport(pid)}>
+            <FileText className="h-4 w-4" /> Visit summary
           </Button>
           <Button onClick={() => window.print()}>
             <Printer className="h-4 w-4" /> Print

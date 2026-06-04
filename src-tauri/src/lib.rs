@@ -54,6 +54,12 @@ pub fn run() {
             sql: include_str!("../migrations/0008_profile_emergency.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 9,
+            description: "encrypted document metadata",
+            sql: include_str!("../migrations/0009_documents.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     // ── PER-APP SECRET — DO NOT CHANGE ────────────────────────────────────────

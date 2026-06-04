@@ -36,6 +36,18 @@ export async function listMetrics(profileId: number, kind: string): Promise<Metr
   );
 }
 
+/** The most recent reading for each metric kind for a profile. */
+export async function latestMetrics(profileId: number): Promise<Metric[]> {
+  return query<Metric>(
+    `SELECT m.* FROM metrics m
+     JOIN (SELECT kind, MAX(taken_at) AS mx FROM metrics WHERE profile_id = ?1 GROUP BY kind) t
+       ON m.kind = t.kind AND m.taken_at = t.mx
+     WHERE m.profile_id = ?1
+     ORDER BY m.kind`,
+    [profileId],
+  );
+}
+
 export async function countMetrics(): Promise<number> {
   const rows = await query<{ n: number }>(`SELECT COUNT(*) AS n FROM metrics`);
   return rows[0]?.n ?? 0;

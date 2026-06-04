@@ -16,6 +16,7 @@ import Reminders from "@/pages/Reminders";
 import Goals from "@/pages/Goals";
 import Schedule from "@/pages/Schedule";
 import Medications from "@/pages/Medications";
+import Documents from "@/pages/Documents";
 import Ice from "@/pages/Ice";
 import Journey from "@/pages/Journey";
 import { Placeholder } from "@/pages/Placeholder";
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/goals" element={<Goals />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/medications" element={<Medications />} />
+            <Route path="/documents" element={<Documents />} />
             <Route path="/ice" element={<Ice />} />
             <Route
               path="/trends"

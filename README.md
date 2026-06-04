@@ -10,7 +10,7 @@ Architecturally it is a client-only Tauri v2 + React/TypeScript app with **no ba
 
 ## Status
 
-🟢 **Phase 0 scaffold + start of Phase 1.** A Tauri v2 + React + TS app, wired to `sharedcorelib`, builds green (`npm run build`). Working Starter slice: **Today** (water intake + daily tasks), **Profiles** (self + family), **Vitals** logging, and **Your journey** (the tier ladder), all behind the progressive-disclosure shell. Heavier features are gated placeholders for now. The design is captured in:
+🟢 **Phase 1 complete.** A Tauri v2 + React + TS app, wired to `sharedcorelib`, builds green (`npm run build`, 11 tests). Working: **Today** (water + daily tasks), **Profiles** (self + family), **Vitals**, **Goals** (with ETA projection), **Reminders** inbox, **Schedule**, **Medications**, an encrypted **Document vault**, a printable **Medical ICE card** + **doctor-visit summary**, and **Your journey** (the tier ladder) — all behind the progressive-disclosure shell, each feature surfacing only at its tier. Next up is Phase 2, the medical-document import pipeline. The design is captured in:
 
 - [`docs/PRODUCT_FEATURES.md`](docs/PRODUCT_FEATURES.md) — what we're building and why.
 - [`docs/PLAN.md`](docs/PLAN.md) — architecture, data model, and the phased delivery plan.

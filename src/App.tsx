@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { isTauri } from "@/lib/environment";
 import { recordLaunch } from "@/db/usage";
+import { runHabitReminderSweep } from "@/lib/reminderSweep";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
 import { useSettingsStore } from "@/stores/settings.store";
@@ -32,6 +33,15 @@ export default function App() {
         }
       }
       await Promise.all([hydrateSettings(), refreshTier(), refreshGating()]);
+
+      // Raise habit reminders once the UI is idle so startup is never blocked.
+      const sweep = () => void runHabitReminderSweep();
+      if (isTauri()) {
+        const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void })
+          .requestIdleCallback;
+        if (ric) ric(sweep);
+        else setTimeout(sweep, 2000);
+      }
     })();
   }, [hydrateSettings, refreshTier, refreshGating]);
 

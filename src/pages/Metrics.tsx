@@ -10,16 +10,7 @@ import { addMetric, listMetrics, type Metric } from "@/db/metrics";
 import { localToday } from "@/lib/utils";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
-
-const METRIC_KINDS: { kind: string; label: string; unit: string }[] = [
-  { kind: "weight", label: "Weight", unit: "kg" },
-  { kind: "bp_systolic", label: "Blood pressure (systolic)", unit: "mmHg" },
-  { kind: "bp_diastolic", label: "Blood pressure (diastolic)", unit: "mmHg" },
-  { kind: "glucose_fasting", label: "Fasting glucose", unit: "mg/dL" },
-  { kind: "heart_rate", label: "Resting heart rate", unit: "bpm" },
-  { kind: "spo2", label: "SpO₂", unit: "%" },
-  { kind: "temperature", label: "Temperature", unit: "°C" },
-];
+import { METRIC_KINDS } from "@/lib/metricKinds";
 
 export default function Metrics() {
   const { profile } = useActiveProfile();

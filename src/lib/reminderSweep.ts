@@ -10,12 +10,14 @@ import { localToday } from "@/lib/utils";
 import { listProfiles } from "@/db/profiles";
 import { getWaterDay } from "@/db/water";
 import { listTasksForToday } from "@/db/tasks";
+import { listAllActiveMedications } from "@/db/medications";
 import { defaultWaterGlasses } from "@/domain/water";
 import { buildHabitReminders, type HabitInput } from "@/domain/derivedReminders";
 import { listOpenReminders, markReminderFired, syncDerivedReminders } from "@/db/reminders";
 
 async function gatherDesired(day: string) {
   const profiles = await listProfiles();
+  const nameById = new Map(profiles.map((p) => [p.id, p.name]));
   const water: HabitInput["water"] = [];
   const tasks: HabitInput["tasks"] = [];
   for (const p of profiles) {
@@ -30,7 +32,19 @@ async function gatherDesired(day: string) {
       tasks.push({ taskId: t.id, profileId: p.id, name: p.name, title: t.title, done: t.done });
     }
   }
-  return buildHabitReminders({ day, water, tasks });
+
+  // Active, non-PRN medications → a daily "take" nudge.
+  const meds: NonNullable<HabitInput["meds"]> = (await listAllActiveMedications())
+    .filter((m) => m.schedule !== "PRN")
+    .map((m) => ({
+      medId: m.id,
+      profileId: m.profile_id,
+      name: nameById.get(m.profile_id) ?? "",
+      drug: m.drug,
+      strength: m.strength,
+    }));
+
+  return buildHabitReminders({ day, water, tasks, meds });
 }
 
 /** Refresh derived reminders from app data WITHOUT raising a notification (for the inbox). */

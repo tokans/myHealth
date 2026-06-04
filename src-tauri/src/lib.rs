@@ -42,6 +42,18 @@ pub fn run() {
             sql: include_str!("../migrations/0006_daily_habits.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "medications",
+            sql: include_str!("../migrations/0007_medications.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 8,
+            description: "profile emergency / ICE fields",
+            sql: include_str!("../migrations/0008_profile_emergency.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     // ── PER-APP SECRET — DO NOT CHANGE ────────────────────────────────────────

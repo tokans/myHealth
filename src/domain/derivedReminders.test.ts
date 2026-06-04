@@ -28,6 +28,16 @@ describe("buildHabitReminders", () => {
     expect(out.map((r) => r.dedupe_key)).toEqual(["task:10:2026-06-04"]);
   });
 
+  it("creates one daily reminder per active medication", () => {
+    const out = buildHabitReminders({
+      ...base,
+      meds: [{ medId: 5, profileId: 1, name: "Asha", drug: "Metformin", strength: "500 mg" }],
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0]!.dedupe_key).toBe("med:5:2026-06-04");
+    expect(out[0]!.title).toBe("Take Metformin (500 mg)");
+  });
+
   it("uses stable keys that are idempotent across calls", () => {
     const input = { ...base, water: [{ profileId: 1, name: "A", glasses: 0, target: 8 }] };
     expect(buildHabitReminders(input)).toEqual(buildHabitReminders(input));

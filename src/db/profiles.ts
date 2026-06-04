@@ -11,7 +11,20 @@ export interface Profile {
   height_cm: number | null;
   photo_ref: string | null;
   notes: string | null;
+  emergency_contact: string | null;
+  emergency_phone: string | null;
+  emergency_email: string | null;
+  organ_donor: number;
+  advance_directive: string | null;
   created_at: string;
+}
+
+export interface EmergencyInfo {
+  emergency_contact: string | null;
+  emergency_phone: string | null;
+  emergency_email: string | null;
+  organ_donor: number;
+  advance_directive: string | null;
 }
 
 export type NewProfile = Pick<Profile, "name"> &
@@ -51,4 +64,26 @@ export async function createProfile(p: NewProfile): Promise<number> {
 
 export async function deleteProfile(id: number): Promise<void> {
   await execute(`DELETE FROM profiles WHERE id = ?1`, [id]);
+}
+
+export async function getProfile(id: number): Promise<Profile | null> {
+  const rows = await query<Profile>(`SELECT * FROM profiles WHERE id = ?1 LIMIT 1`, [id]);
+  return rows[0] ?? null;
+}
+
+export async function updateEmergency(id: number, e: EmergencyInfo): Promise<void> {
+  await execute(
+    `UPDATE profiles SET
+       emergency_contact = ?2, emergency_phone = ?3, emergency_email = ?4,
+       organ_donor = ?5, advance_directive = ?6
+     WHERE id = ?1`,
+    [
+      id,
+      e.emergency_contact ?? null,
+      e.emergency_phone ?? null,
+      e.emergency_email ?? null,
+      e.organ_donor ? 1 : 0,
+      e.advance_directive ?? null,
+    ],
+  );
 }

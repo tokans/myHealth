@@ -8,7 +8,7 @@
 export interface DerivedReminder {
   dedupe_key: string;
   profile_id: number;
-  source: "water" | "task";
+  source: "water" | "task" | "medication";
   title: string;
   detail?: string;
   due_date: string; // 'YYYY-MM-DD'
@@ -18,6 +18,8 @@ export interface HabitInput {
   day: string;
   water: { profileId: number; name: string; glasses: number; target: number }[];
   tasks: { taskId: number; profileId: number; name: string; title: string; done: boolean }[];
+  /** Active, non-PRN medications that warrant a daily "take" nudge. */
+  meds?: { medId: number; profileId: number; name: string; drug: string; strength?: string | null }[];
 }
 
 /** Build today's derived reminders from habit state. Stable keys → idempotent per day. */
@@ -48,6 +50,17 @@ export function buildHabitReminders(input: HabitInput): DerivedReminder[] {
         due_date: input.day,
       });
     }
+  }
+
+  for (const m of input.meds ?? []) {
+    out.push({
+      dedupe_key: `med:${m.medId}:${input.day}`,
+      profile_id: m.profileId,
+      source: "medication",
+      title: m.strength ? `Take ${m.drug} (${m.strength})` : `Take ${m.drug}`,
+      detail: m.name,
+      due_date: input.day,
+    });
   }
 
   return out;

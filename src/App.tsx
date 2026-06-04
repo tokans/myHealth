@@ -15,6 +15,8 @@ import Metrics from "@/pages/Metrics";
 import Reminders from "@/pages/Reminders";
 import Goals from "@/pages/Goals";
 import Schedule from "@/pages/Schedule";
+import Medications from "@/pages/Medications";
+import Ice from "@/pages/Ice";
 import Journey from "@/pages/Journey";
 import { Placeholder } from "@/pages/Placeholder";
 
@@ -58,6 +60,8 @@ export default function App() {
             <Route path="/reminders" element={<Reminders />} />
             <Route path="/goals" element={<Goals />} />
             <Route path="/schedule" element={<Schedule />} />
+            <Route path="/medications" element={<Medications />} />
+            <Route path="/ice" element={<Ice />} />
             <Route
               path="/trends"
               element={
@@ -65,16 +69,6 @@ export default function App() {
                   gateKey="trends"
                   title="Trends"
                   description="See any metric or lab value charted across time with reference-range bands."
-                />
-              }
-            />
-            <Route
-              path="/medications"
-              element={
-                <Placeholder
-                  gateKey="medications"
-                  title="Medications"
-                  description="Track medications, schedules and refill reminders per profile."
                 />
               }
             />

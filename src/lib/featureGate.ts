@@ -31,6 +31,7 @@ export type GateKey =
   | "family"
   | "schedule"
   | "medications"
+  | "ice"
   | "trends"
   | "import"
   | "directory"
@@ -85,6 +86,15 @@ export const GATES: Record<GateKey, HealthGate> = {
     lockBehavior: "hide",
     lockedTitle: "Medications",
     unlockHint: "Reach the Tracker tier to track medications.",
+    ctaLabel: "View your journey",
+    ctaTo: "/journey",
+  },
+  ice: {
+    key: "ice",
+    isUnlocked: (f) => f.isCaretaker,
+    lockBehavior: "hide",
+    lockedTitle: "Medical ICE card",
+    unlockHint: "Reach the Caretaker tier to build a shareable emergency medical card.",
     ctaLabel: "View your journey",
     ctaTo: "/journey",
   },

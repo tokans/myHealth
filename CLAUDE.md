@@ -23,7 +23,7 @@ Concretely, on each major change:
 
 Do **not** treat docs as optional cleanup. A feature is not "done" until the docs describe it. If a change is small/mechanical (a bugfix, a rename, a style tweak), no doc update is needed — use judgement.
 
-**Current state:** _Planning / pre-implementation — no application code yet._ Update this line as phases land (see `docs/PLAN.md` §6 roadmap).
+**Current state:** _Phase 0 scaffold + start of Phase 1 landed._ Tauri+React+TS app wired to `sharedcorelib` (vault, tiers, gating, env, ui, common masters). Migrations 0001–0006 (settings/usage, profiles, metrics, goals, reminders, daily habits). Working Starter slice: **Today** (water + daily tasks), **Profiles** (self+family), **Vitals** logging, **Journey** (tier ladder), with the progressive-disclosure shell (Open/Nudge/Hidden nav + `FeatureGuard`). `npm run build` (tsc --noEmit + vite) is green. Not yet built: medications/schedule/trends/import/directory pages (gated placeholders), reminder sweep wiring, OTA masters, document vault UI, the import pipeline. Update this line as phases land (see `docs/PLAN.md` §6).
 
 ---
 
@@ -50,9 +50,9 @@ Tauri v2 (Rust shell) + React 18 + TypeScript + Vite · HashRouter · Zustand ·
 
 **The one net-new, app-specific subsystem is the document-import pipeline** (`docs/medical-document-parser-architecture.md`), likely a bundled local OCR sidecar — decision pending (see `docs/PLAN.md` §4). Everything else is shared-core (`docs/SHARED_CORE.md`).
 
-## Planned architecture (target shape — fill in as built)
+## Architecture (scaffold landed — keep in sync as modules land)
 
-> Code does not exist yet. This section describes the *intended* layout from `docs/PLAN.md`; keep it in sync as modules land.
+> The skeleton below now exists and builds. Sections marked _(later)_ are stubs/placeholders pending their roadmap phase.
 
 - `src-tauri/` — Rust shell: `lib.rs` registers plugins + embeds numbered migrations; `capabilities/default.json` is the permission allowlist; possible parser-sidecar bridge.
 - `src/pages/` — Today (daily tasks + water), Profiles, Goals, Metrics, Schedule, Import, Medications, Vault, Timeline, Immunizations, Directory (gated), etc.
@@ -68,9 +68,9 @@ Tauri v2 (Rust shell) + React 18 + TypeScript + Vite · HashRouter · Zustand ·
 
 Vault & doc crypto · masters/OTA · tiers & feature-gating · reminders (derived + manual + OS notifications) · report/PDF export · ICE/emergency · LAN sync · UI primitives. These are app-agnostic mechanisms parameterized by app-supplied config (dependency injection). See `docs/PLAN.md` §5 and `docs/SHARED_CORE.md`. If the shared package isn't available yet, implement in-app and extract later — **never** add a runtime dependency on a sibling app.
 
-## Commands (to be wired during Phase 0 scaffold)
+## Commands
 
-Will mirror myFinance: `npm run dev` (Vite browser, no DB/vault), `npm run tauri:dev` (full app — required for SQLite/Stronghold), `npm run build` (tsc --noEmit + Vite), `npm run tauri:build`, `npm run test` (Vitest, `*.test.ts` colocated). Update this section with the real scripts once `package.json` exists.
+`npm run dev` (Vite browser, no DB/vault), `npm run tauri:dev` (full app — required for SQLite/Stronghold), `npm run build` (runs `prebuild` = builds `../sharedCoreLib`, then tsc --noEmit + Vite), `npm run tauri:build`, `npm run test` (Vitest, `*.test.ts` colocated). The frontend currently builds green via `npm run build`.
 
 ## Related context
 

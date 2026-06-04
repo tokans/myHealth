@@ -10,7 +10,7 @@ Architecturally it is a client-only Tauri v2 + React/TypeScript app with **no ba
 
 ## Status
 
-🟡 **Planning / pre-implementation.** No application code yet. The design is captured in:
+🟢 **Phase 0 scaffold + start of Phase 1.** A Tauri v2 + React + TS app, wired to `sharedcorelib`, builds green (`npm run build`). Working Starter slice: **Today** (water intake + daily tasks), **Profiles** (self + family), **Vitals** logging, and **Your journey** (the tier ladder), all behind the progressive-disclosure shell. Heavier features are gated placeholders for now. The design is captured in:
 
 - [`docs/PRODUCT_FEATURES.md`](docs/PRODUCT_FEATURES.md) — what we're building and why.
 - [`docs/PLAN.md`](docs/PLAN.md) — architecture, data model, and the phased delivery plan.
@@ -55,6 +55,8 @@ myHealth/
    ├─ PLAN.md
    ├─ SHARED_CORE.md        ← shared cross-app package + installer/runtime-sharing design
    └─ medical-document-parser-architecture.md
+├─ src/                   ← React + TS frontend (pages, components, db, stores, domain)
+└─ src-tauri/             ← Rust shell, migrations, capabilities, core_bootstrap.rs
 ```
 
-_Code directories (`src/`, `src-tauri/`) will appear as implementation begins._
+Run `npm install` then `npm run tauri:dev` for the full app (SQLite + vault), or `npm run dev` for a browser preview (no DB).

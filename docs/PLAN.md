@@ -150,11 +150,11 @@ The **double-gate rule** for master content (tier earned **AND** owner-published
 
 ## 6. Phased roadmap
 
-**Phase 0 — scaffold (clone the skeleton).**
-Bootstrap Tauri+React+TS from myFinance's structure; settings store, AppShell, routing, SQLite client, migrations 0001–0002, vault unlock. `npm run dev` (browser, no DB) + `npm run tauri:dev` parity.
+**Phase 0 — scaffold (clone the skeleton). ✅ DONE.**
+Bootstrap Tauri+React+TS; settings store, AppShell, routing, SQLite client, migrations, vault wiring, `core_bootstrap.rs`, consumption of `sharedcorelib` (vault/tiers/gating/env/ui/common-masters). Frontend builds green (`npm run build`).
 
-**Phase 1 — the core record + calm first-run (no import yet).**
-Profiles (self+family), metrics + manual entry forms, goals + deterministic projection, document vault, ICE card, reminders engine, doctor-visit report. **Plus the Starter experience: the Today view, water intake + reminders, and daily health tasks (§4.N of the product doc), and the progressive-disclosure shell** — the Starter→Tracker→Caretaker→Champion ladder with Open/Nudge/Hidden states — so the app feels small and unintimidating from first launch while heavier features stay hidden/nudged until earned. (The daily/weekly schedule opens at Tracker.) This is a complete, useful app on manual data alone.
+**Phase 1 — the core record + calm first-run (no import yet). 🟡 IN PROGRESS.**
+_Landed:_ profiles (self+family), vitals logging, the Today view (water + daily tasks), the tier ladder + progressive-disclosure shell (Open/Nudge/Hidden + `FeatureGuard`), the "Your journey" screen. _Remaining:_ goals + deterministic projection, daily/weekly schedule, document vault UI, ICE card, reminder-sweep wiring, medications, doctor-visit report. **Plus the Starter experience: the Today view, water intake + reminders, and daily health tasks (§4.N of the product doc), and the progressive-disclosure shell** — the Starter→Tracker→Caretaker→Champion ladder with Open/Nudge/Hidden states — so the app feels small and unintimidating from first launch while heavier features stay hidden/nudged until earned. (The daily/weekly schedule opens at Tracker.) This is a complete, useful app on manual data alone.
 
 **Phase 2 — the tractable 80% of import.**
 Native-text PDF fast path (TS). Sidecar for image-normalization + printed OCR. **Pathology table extraction + test normalization → metrics/lab history.** Printed-prescription extraction + formulary match → medications. Confidence-tiered review UI + correction logging. (Mirrors the architecture doc's Phase 1.)

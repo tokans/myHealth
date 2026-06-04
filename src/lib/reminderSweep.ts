@@ -33,6 +33,12 @@ async function gatherDesired(day: string) {
   return buildHabitReminders({ day, water, tasks });
 }
 
+/** Refresh derived reminders from app data WITHOUT raising a notification (for the inbox). */
+export async function syncHabitReminders(): Promise<void> {
+  if (!isTauri()) return;
+  await syncDerivedReminders(await gatherDesired(localToday()));
+}
+
 /** Run one habit-reminder sweep. Returns the open reminder count. */
 export async function runHabitReminderSweep(): Promise<number> {
   if (!isTauri()) return 0;

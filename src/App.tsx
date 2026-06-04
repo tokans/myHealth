@@ -12,7 +12,9 @@ import { useSettingsStore } from "@/stores/settings.store";
 import Today from "@/pages/Today";
 import Profiles from "@/pages/Profiles";
 import Metrics from "@/pages/Metrics";
+import Reminders from "@/pages/Reminders";
 import Goals from "@/pages/Goals";
+import Schedule from "@/pages/Schedule";
 import Journey from "@/pages/Journey";
 import { Placeholder } from "@/pages/Placeholder";
 
@@ -53,17 +55,9 @@ export default function App() {
             <Route path="/" element={<Today />} />
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/metrics" element={<Metrics />} />
+            <Route path="/reminders" element={<Reminders />} />
             <Route path="/goals" element={<Goals />} />
-            <Route
-              path="/schedule"
-              element={
-                <Placeholder
-                  gateKey="schedule"
-                  title="Schedule"
-                  description="Plan medication times, meals, activity and appointments on a daily/weekly timeline."
-                />
-              }
-            />
+            <Route path="/schedule" element={<Schedule />} />
             <Route
               path="/trends"
               element={

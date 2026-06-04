@@ -20,20 +20,20 @@ The answer is **not** "myHealth imports from myFinance." That couples two shippa
 
 ```
         ┌─────────────────────────────┐
-        │  @myshared/core  (library)  │   ← app-agnostic mechanisms, DI config,
-        │  c:\workspace\myShared      │     NO app-specific knowledge, ships nothing
+        │  sharedcorelib  (library)  │   ← app-agnostic mechanisms, DI config,
+        │  c:\workspace\sharedCoreLib      │     NO app-specific knowledge, ships nothing
         └─────────────┬───────────────┘
-              file:../myShared (local dep)
+              file:../sharedCoreLib (local dep)
         ┌─────────────┼───────────────┬───────────────┐
         ▼             ▼               ▼               ▼
    myFinance      myHealth        myFuture-app    …each is a standalone product
 ```
 
-- **`@myshared/core`** is a *library*, not an app. It has no DB of its own, no pages, no branding — only reusable mechanisms parameterized by **injected config**.
-- Each app depends on the core via a local path dependency (`"@myshared/core": "file:../myShared"`), exactly like the existing **`@mydemo/core`** precedent (the demo rig already extracted to `c:\workspace\myDemo` and consumed via `file:../myDemo` with an injected `DemoConfig`). Same discipline, different domain.
+- **`sharedcorelib`** is a *library*, not an app. It has no DB of its own, no pages, no branding — only reusable mechanisms parameterized by **injected config**.
+- Each app depends on the core via a local path dependency (`"sharedcorelib": "file:../sharedCoreLib"`), exactly like the existing **`@mydemo/core`** precedent (the demo rig already extracted to `c:\workspace\myDemo` and consumed via `file:../myDemo` with an injected `DemoConfig`). Same discipline, different domain.
 - **Apps never depend on each other.** If two apps want to interoperate, they do it through **optional, file-based, one-directional** exports (e.g. myHealth writes a medical-expense file myFinance *can* import) — never a code dependency, and only when both happen to be installed.
 
-> Suggested names are placeholders — rename `@myshared/core` / `c:\workspace\myShared` to your taste (e.g. `@mykit/core`, `myCommon`). Keep the `file:../` + DI pattern.
+> Suggested names are placeholders — rename `sharedcorelib` / `c:\workspace\sharedCoreLib` to your taste (e.g. `@mykit/core`, `myCommon`). Keep the `file:../` + DI pattern.
 
 ## 3. Non-negotiable principles
 
@@ -62,7 +62,7 @@ The answer is **not** "myHealth imports from myFinance." That couples two shippa
 
 ## 5. How a new app adopts the core
 
-1. Add `"@myshared/core": "file:../myShared"` to `package.json`.
+1. Add `"sharedcorelib": "file:../sharedCoreLib"` to `package.json`.
 2. Write one `appConfig` object (app name, db name, vault salt/params, OTA repo+keys, tier thresholds, gate defs, master registry, reminder generators, sync adapter, nav).
 3. Call core factories with that config; implement only app-specific domain + pages + migrations + import.
 4. The app builds and runs standalone — the core is just a library on disk.
@@ -85,15 +85,15 @@ Read first:
   extraction memory (project_demo_rig_extracted.md). Mirror that extraction's style.
 
 Goal:
-- Create a new standalone package at C:\workspace\myShared named "@myshared/core" (rename
+- Create a new standalone package at C:\workspace\sharedCoreLib named "sharedcorelib" (rename
   if you prefer; keep file:../ + DI). It is a LIBRARY: no app DB, no pages, no branding —
   only reusable mechanisms parameterized by an injected config object. It must not import
   anything app-specific from myFinance.
-- Consume it from myFinance via "@myshared/core": "file:../myShared", passing myFinance's
+- Consume it from myFinance via "sharedcorelib": "file:../sharedCoreLib", passing myFinance's
   config in. myFinance must remain fully working and fully standalone afterwards.
 
 Extract these subsystems as app-agnostic, config-injected modules (subpath exports like
-@myshared/core/vault, /masters, /tiers, /gating, /reminders, /sync, /report, /ice, /ui,
+sharedcorelib/vault, /masters, /tiers, /gating, /reminders, /sync, /report, /ice, /ui,
 /env). For EACH, the mechanism is shared; app specifics become config/adapters:
   1. env helpers (isTauri, paths)                         — fully generic.
   2. packageCrypto (PBKDF2 -> AES-GCM export sealing)     — fully generic.
@@ -105,7 +105,9 @@ Extract these subsystems as app-agnostic, config-injected modules (subpath expor
        downgrade, 4-layer merge, GitHub-Releases pull, custom/master option tables.
        App supplies: release repo/tag, signing public key, transport key, its OWN master
        registry + zod schemas, and which bundle types exist (e.g. partners).
-  5. tiers/gamification + launch telemetry. App supplies thresholds + core-feature set.
+  5. tiers/gamification + launch telemetry. App supplies an ORDERED tier ladder (N tiers,
+       each with a local unlock predicate) + grant tiers + core-feature set. Do NOT hardcode
+       a 3-tier ladder — myFinance has 3 earned tiers, but other apps (e.g. myHealth) define 4.
   6. feature-gating framework + FeatureGuard + gating store. App supplies gate defs.
   7. reminders: derived+manual model, sweep, bucketing, one OS notification per sweep,
        snooze/dismiss preservation. App supplies the derived-reminder GENERATORS.
@@ -124,8 +126,8 @@ REUSES it, while each app still installs and runs STANDALONE):
      download cache. Implement L2 sharing:
      - Define a per-user (no-admin) shared suite dir with a manifest.json holding
        { coreVersion, owners[] }:
-         Windows %LOCALAPPDATA%\MyAppSuite\core ; macOS ~/Library/Application Support/
-         MyAppSuite/core ; Linux ~/.local/share/MyAppSuite/core.
+         Windows %LOCALAPPDATA%\SharedCoreLib\core ; macOS ~/Library/Application Support/
+         SharedCoreLib/core ; Linux ~/.local/share/SharedCoreLib/core.
      - Add a startup bootstrap (Rust, in lib.rs setup — portable across installers): if the
        shared dir is absent OR manifest.coreVersion < the version this app bundles, lay down
        / upgrade L2 from the app's bundled copy and bump the version; else REUSE and install
@@ -144,7 +146,7 @@ REUSES it, while each app still installs and runs STANDALONE):
      - NEVER share user data: vaults (per-app salt), app SQLite DBs, and settings stay
        strictly per-app and isolated. Only the L2 redistributable assets are shared.
      - Wire myFinance as the "first app" that lays down the core, and document the whole
-       install/reuse/refcount/version contract in myShared/CONTRACT.md so myHealth and
+       install/reuse/refcount/version contract in sharedCoreLib/CONTRACT.md so myHealth and
        future apps reuse it identically.
 
 Hard rules:
@@ -156,28 +158,28 @@ Hard rules:
   append-only migrations, per-app vault salt).
 
 Process (incremental, keep the build green the whole way):
-- Scaffold C:\workspace\myShared (its own git repo, package.json, tsconfig, subpath
+- Scaffold C:\workspace\sharedCoreLib (its own git repo, package.json, tsconfig, subpath
   exports, README, and a CONTRACT.md documenting the public API + the required app-config
   shape so myHealth/future apps can consume it identically).
 - Extract ONE subsystem at a time, starting with the most clearly-generic (env,
   packageCrypto, vault) before the config-heavy ones (masters, sync). After each: update
-  myFinance to import from @myshared/core, then run `npm run build` (tsc --noEmit + Vite)
+  myFinance to import from sharedcorelib, then run `npm run build` (tsc --noEmit + Vite)
   and `npm run test` (Vitest) and confirm green before moving on.
 - Do not delete myFinance's original module until its replacement import is green.
 
 Finish by:
-- Updating myFinance's CLAUDE.md to describe that infra now comes from @myshared/core, and
+- Updating myFinance's CLAUDE.md to describe that infra now comes from sharedcorelib, and
   adding a memory file (like project_demo_rig_extracted.md) recording the extraction and
   the package's config contract.
-- Writing myShared/CONTRACT.md as the canonical "how an app consumes the core" reference.
+- Writing sharedCoreLib/CONTRACT.md as the canonical "how an app consumes the core" reference.
 - Summarizing exactly which modules were extracted, the app-config shape, and any
   subsystem you intentionally left in-app (e.g. the Rust crate) with the reason.
 
 Do NOT modify anything under C:\workspace\myHealth. This task is only myFinance + the new
-C:\workspace\myShared package.
+C:\workspace\sharedCoreLib package.
 ```
 
-After that runs, point myHealth at the same package: add `"@myshared/core": "file:../myShared"` and follow `myShared/CONTRACT.md` (this is Phase 0/1 work in [`PLAN.md`](./PLAN.md)).
+After that runs, point myHealth at the same package: add `"sharedcorelib": "file:../sharedCoreLib"` and follow `sharedCoreLib/CONTRACT.md` (this is Phase 0/1 work in [`PLAN.md`](./PLAN.md)).
 
 ## 7. Installer & runtime sharing — *first app installs the core, second reuses it*
 
@@ -187,7 +189,7 @@ After that runs, point myHealth at the same package: add `"@myshared/core": "fil
 
 | Layer | What it is | Size | Sharing |
 |---|---|---|---|
-| **L1 — build-time library** | the TS/React `@myshared/core` code | small (KB–low MB) | **Bundled into each app's webview bundle** at build time. Not runtime-shared (it's compiled into each app's assets). Duplication here is cheap and keeps apps standalone. |
+| **L1 — build-time library** | the TS/React `sharedcorelib` code | small (KB–low MB) | **Bundled into each app's webview bundle** at build time. Not runtime-shared (it's compiled into each app's assets). Duplication here is cheap and keeps apps standalone. |
 | **L2 — runtime assets** | native sidecars + ML models (e.g. myHealth's OCR sidecar), the **OTA reference-data cache** (masters/partners bundles), and a suite manifest | large (10s–100s MB) + downloaded | **Installed once into a shared suite dir and reused.** This is "the core" worth sharing. |
 
 So "first installs the core, second reuses it" applies to **L2** — the expensive, downloaded, native stuff. The cheap compiled library rides along in each app.
@@ -195,9 +197,9 @@ So "first installs the core, second reuses it" applies to **L2** — the expensi
 ### 7.2 Shared suite directory (per-user, no admin)
 
 ```
-Windows : %LOCALAPPDATA%\MyAppSuite\core\
-macOS   : ~/Library/Application Support/MyAppSuite/core/
-Linux   : ~/.local/share/MyAppSuite/core/
+Windows : %LOCALAPPDATA%\SharedCoreLib\core\
+macOS   : ~/Library/Application Support/SharedCoreLib/core/
+Linux   : ~/.local/share/SharedCoreLib/core/
    ├─ manifest.json     # { coreVersion, owners: ["myFinance","myHealth"], ... }
    ├─ bin/              # shared native sidecars (e.g. the OCR parser)
    ├─ models/           # shared ML models

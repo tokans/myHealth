@@ -26,12 +26,16 @@ Architecturally it is a client-only Tauri v2 + React/TypeScript app with **no ba
 
 ## Core features (see the product doc for the full catalog)
 
+- **Daily habits** — a calm **Today** view (small task checklist), **water intake + reminders**, custom daily tasks, and a daily/weekly **schedule**
 - **Health profiles** for self + family (the backbone)
 - **Goals & tracking** with deterministic projections
 - **Metrics & vitals** time-series with reference-range flagging
 - **Document import** — native-text PDFs skip the wizard; scans/photos/handwriting go through a confidence-tiered, human-in-the-loop review
 - **Medications & reminders**, **immunizations & screenings**, **encrypted document vault**, **medical ICE card**, **doctor-visit summary export**
 - **Gated reference data** (professionals directory, health-items catalog) — visible only at a usage tier *and* once published
+
+### Designed not to overwhelm
+New users land in a small **Starter** app. Features unlock as you use it, along a health-flavored ladder — **🌱 Starter → 📈 Tracker → 🧭 Caretaker → 🏆 Champion** (plus grant tiers Supporter & Verified Pro). Each feature is **Open**, a gentle **Nudge** ("log a metric to unlock goals"), or **Hidden** until earned. All unlock signals are computed **on-device** and never transmitted.
 
 ## Roadmap (high level)
 

@@ -80,7 +80,7 @@ This is the health analog of myFinance's Excel pipeline, and it is specified in 
 Builds on the shared reminder engine (derived vs. manual reminders + OS notifications — see [`SHARED_CORE.md`](./SHARED_CORE.md)).
 
 - Medication list per profile: drug, strength, form, schedule (OD/BD/TDS/QID/custom), start/end, prescriber, linked source document.
-- **Derived reminders:** dose times, refill-due (from quantity + schedule), prescription-expiry, lab-recheck-due, appointment-due, vaccine-due, screening-due.
+- **Derived reminders:** dose times, refill-due (from quantity + schedule), prescription-expiry, lab-recheck-due, appointment-due, vaccine-due, screening-due, **hydration (water-intake) pings**, and **daily-task/schedule reminders** (§4.N).
 - **Manual reminders:** anything the user types.
 - Adherence tracking: mark dose taken/skipped; adherence % feeds a habit goal.
 - One OS notification per sweep (same pattern as myFinance), graceful no-op without permission.
@@ -128,12 +128,33 @@ A second signed, OTA-pushed reference set — **invisible until tier + published
 
 These power optional logging features (food diary, supplement stack, equipment owned) — all of which degrade gracefully to free-text when the catalog isn't present.
 
-### 4.J Tiers & feature gating
-Uses the shared gamification + feature-gate model (tiers newcomer → regular → expert, grant-only patron/partner — see [`SHARED_CORE.md`](./SHARED_CORE.md)).
+### 4.J Progressive disclosure & health tiers *(core UX)*
+The app must **not intimidate a new user with dozens of features**. myHealth opens minimal and **earns the user's way into depth** as they actually use it. Built on the shared gamification + feature-gate engine ([`SHARED_CORE.md`](./SHARED_CORE.md)), but with a health-flavored ladder and three visibility states. **All unlock signals are local-only telemetry — never transmitted.**
 
-- **Local-only usage telemetry** (launch days, features touched) unlocks tiers **on-device** — never transmitted.
-- **Gated-behind-tier features:** the professionals directory (§4.H), the health-items catalog (§4.I), device-to-device sync, and any other "advanced" surface.
-- **Double gate** for master content: visible only when *both* the tier is reached *and* the owner has actually published a signed bundle. Until then the menu entry doesn't appear (no teaser).
+#### Three visibility states for every feature
+- **Open** — available now at the current tier.
+- **Nudge** (shown but locked, with a one-line CTA) — *"Log a metric to unlock goal tracking."* A gentle teaser that tells the user the single next action to open it. Used to guide newcomers without clutter. (This is a per-feature prerequisite gate, independent of tier.)
+- **Hidden** — not rendered at all until a tier is reached. Used for complex/advanced features so a newcomer never even sees them. (Master content is additionally hidden until the owner publishes data — the *double gate*.)
+
+#### The tier ladder (earned through use)
+The ladder is **app-defined config** passed to the shared tier engine (ordered tiers, each with a local unlock predicate). Names and criteria below are tunable.
+
+| Tier | Unlock signal (example, tunable) | What it reveals |
+|---|---|---|
+| **🌱 Starter** (default) | — everyone starts here | Your own profile · the **Today** view (daily tasks + **water intake**) · one-tap vitals logging · add a document (native-text/simple path) |
+| **📈 Tracker** | finished your profile **and** logged data on **≥5 distinct days** (or ≥3 days + set 1 goal) | Family-member profiles · **health goals + projections** · trends/charts · medications + dose/refill reminders · the **daily/weekly schedule** · reminders center |
+| **🧭 Caretaker** | **≥2 profiles** · active on ≥8 days across ≥1 month · used import at least once | Full import wizard (scans/photos/handwriting) + lab-trend dashboard · immunizations + screening planner · medical ICE card · symptom journal · appointments · doctor-visit summary · **professionals directory eligible** (still double-gated on published data) |
+| **🏆 Champion** | **≥20 active days** · every core feature used once · ≥2 profiles with goals | Device-to-device sync · encrypted family health pack / register export · chronic-condition care plans · **health-items catalog eligible** (double-gated) + items-powered diaries · full timeline + advanced analytics |
+
+Grant-only tiers (outrank earned tiers, via the shared mechanism):
+- **💗 Supporter** — recorded from a signed donation file; unlocks cosmetic niceties (themes) regardless of earned tier.
+- **✅ Verified Pro** — granted to verified health professionals; unlocks partner/professional surfaces.
+
+#### How progress is shown (motivate, never nag)
+A subtle **"Your journey"** strip shows the next milestone (*"2 more days of logging to reach Tracker"*) and what it will open. Newly unlocked features get a one-time highlight. No badgering, no streak-shaming — the daily tasks (§4.N) are the natural engine that accrues the active-day signals.
+
+#### Double gate for master content
+The professionals directory (§4.H) and health-items catalog (§4.I) appear **only when both** the tier is reached **and** the owner has published a signed bundle. Until then the menu entry simply isn't rendered (no teaser).
 
 ### 4.K Emergency / ICE card *(core)*
 Uses the shared ICE/emergency primitives, narrowed to medical.
@@ -149,6 +170,16 @@ Uses the shared ICE/emergency primitives, narrowed to medical.
 ### 4.M Family health history *(record-keeping)*
 - Structured family-history record (conditions by relation) — deterministic record-keeping for "discuss with your doctor," **not** risk scoring.
 
+### 4.N Daily habits — Today, water & schedule *(Starter core; the engagement engine)*
+The friendly front door that makes the app a daily habit and drives the usage signals that unlock higher tiers (§4.J).
+
+- **Today view** — the default landing screen at **Starter** tier. A tiny, encouraging checklist of small actions: *log your weight, drink water, take your meds, take a short walk.* Tasks come from the user's own data (active meds → "take meds"; active goals → a nudge) plus a couple of universal starter habits. Checking items off is one tap and feeds adherence/active-day signals. Deliberately short — never a wall of tasks.
+- **Water intake** *(Starter)* — a simple hydration tracker with a target (deterministic default by body weight/sex, fully editable) and **+1 glass** quick-add. Opt-in **water reminders** spaced across waking hours (e.g. every 2h, user-set), delivered through the shared reminder/notification engine (§4.E). Hydration trend feeds an optional habit goal.
+- **Daily health tasks (custom)** *(Starter → richer at Tracker)* — user-defined recurring tasks (walk 20 min, BP reading, stretch, meditation) with simple schedules (daily / weekdays / specific days) and reminders. Completion history shows a gentle streak.
+- **Daily / weekly schedule** *(Tracker)* — a planned day/week laying out medication times, meals, activity blocks, and appointments on a timeline, generating the right reminders. At **Starter** this appears as a **Nudge** ("complete a few days of tasks to plan your day"); it fully opens at **Tracker**. Per-profile, so a caregiver can run a parent's or child's schedule too.
+
+All of the above are **deterministic and offline**; reminders are local OS notifications with a graceful no-op when permission isn't granted. No coaching language implying medical advice.
+
 ---
 
 ## 5. Suggested additional features (along the same line)
@@ -160,30 +191,40 @@ Ranked roughly by value/fit. All deterministic, offline, no interpretation.
 3. **Wearable / health-app data import** — receive-only file import of Apple Health / Google Fit / Fitbit / Garmin CSV/XML exports into the metrics store (steps, HR, sleep, weight). No live API, no account linking — same "import a file" philosophy as myFinance's Excel path.
 4. **Children's growth charts** — plot height/weight/head-circumference against **baked WHO/IAP percentile curves**; deterministic, advisory.
 5. **Menstrual / cycle tracking** — period log, cycle-length trend, predicted next date (deterministic), with privacy emphasis.
-6. **Food / nutrition diary & water intake** — log meals (free-text or from the items catalog), daily calorie/macro rollup, hydration; feeds nutrition goals.
+6. **Food / nutrition diary** — log meals (free-text or from the items catalog), daily calorie/macro rollup; feeds nutrition goals. (Water intake is core — see §4.N.)
 7. **Activity / workout log** — sessions, type, duration, with equipment from the catalog; feeds fitness goals.
 8. **Sleep log** — manual or imported; trend + sleep-hours habit goal.
 9. **Chronic-condition care plans** — a per-condition checklist/template (e.g. diabetes: HbA1c every N months, annual eye/foot check, daily glucose) that auto-generates reminders. Deterministic templates, not advice.
 10. **Lab-trend dashboard** — pick any imported test and see it across all visits with reference-range bands.
 11. **Health expense tracking + optional bridge to a finance app** — log medical bills/insurance claims; *if* the user also runs myFinance, optionally export a file summary it can ingest. The bridge is **file-based and one-directional** — neither app depends on the other being installed.
 12. **Multi-profile dashboard** — household overview: who has something due (vaccine, refill, screening, appointment) this week.
-13. **Device-to-device LAN sync** — the shared two-way LWW sync so a couple can keep the family record in step across two devices, no backend. Gated to expert tier.
+13. **Device-to-device LAN sync** — the shared two-way LWW sync so a couple can keep the family record in step across two devices, no backend. Gated to **Champion** tier.
 14. **Allergy / interaction *flags from the prescription itself*** — surface only what the document/label states; **never** compute interactions (explicit non-goal).
 15. **Multi-language UI & document handling** — relevant for Indian-context prescriptions.
 
 ---
 
-## 6. Gating model — what is hidden, and when
+## 6. Gating model — what shows, what nudges, what's hidden
 
-| Surface | Visible when |
-|---|---|
-| Profiles, goals, metrics, manual forms, document import, vault, reminders, ICE card, reports | Always (these are the free core) |
-| Professionals directory (§4.H) | Tier ≥ threshold **AND** owner has published a signed professionals bundle |
-| Health-items catalog (§4.I) | Tier ≥ threshold **AND** owner has published a signed items bundle |
-| Device sync (§5.13) | Expert tier |
-| Patron-only niceties | Patron grant |
+Maps each surface to a tier (§4.J) and a visibility **state**: **Open** (usable now), **Nudge** (shown locked with a one-line "do X" CTA), or **Hidden** (not rendered until the tier).
 
-Key rule (from your brief): **master content does not appear at all** — not even as a locked teaser — **until both the tier is earned and you have actually added the data**. The OTA check is receive-only; an empty/absent bundle means the menu entry simply isn't rendered.
+| Surface | Tier | State before unlock |
+|---|---|---|
+| Own profile · Today view (daily tasks + water) · vitals logging · add-a-document (simple) | **Starter** | Open |
+| Set a health goal | Starter→**Tracker** | **Nudge:** *"Log a metric first for a baseline."* |
+| Add a family member | Starter→**Tracker** | **Nudge:** *"Finish your own profile first."* |
+| Build your schedule | Starter→**Tracker** | **Nudge:** *"Do a few days of tasks to plan your day."* |
+| Goals + projections · trends/charts · family profiles · medications · daily/weekly schedule · reminders center | **Tracker** | Hidden at Starter |
+| Full import wizard · lab-trend dashboard · immunizations + screenings · ICE card · journal · appointments · doctor-visit summary | **Caretaker** | Hidden below Caretaker |
+| Professionals directory (§4.H) | **Caretaker** | Hidden — **and** double-gated: appears only once the owner has published a signed bundle |
+| Device sync · family health pack export · care plans · advanced analytics | **Champion** | Hidden below Champion |
+| Health-items catalog (§4.I) + items-powered diaries | **Champion** | Hidden — **and** double-gated on a published bundle |
+| Cosmetic niceties (themes) | **Supporter** (grant) | Hidden until granted |
+| Professional/partner surfaces | **Verified Pro** (grant) | Hidden until granted |
+
+Two key rules:
+1. **Newcomers see a calm, small app.** Only Starter surfaces render; everything heavier is Hidden, with a few **Nudges** pointing at the single next action.
+2. **Master content double-gates.** The directory and items catalog never appear — not even as a locked teaser — **until both** the tier is earned **and** the owner has actually published the signed data. The OTA check is receive-only; an absent bundle means the entry isn't rendered.
 
 ---
 

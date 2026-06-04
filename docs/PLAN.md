@@ -2,7 +2,7 @@
 
 **Status:** Living plan (v0.1 — pre-implementation)
 **Read first:** [`PRODUCT_FEATURES.md`](./PRODUCT_FEATURES.md), [`SHARED_CORE.md`](./SHARED_CORE.md), and [`medical-document-parser-architecture.md`](./medical-document-parser-architecture.md).
-**Design stance:** myHealth is a **standalone** local-first app built on a **shared core package** (`@myshared/core` — see [`SHARED_CORE.md`](./SHARED_CORE.md)) that provides app-agnostic subsystems (vault, masters/OTA, tiers, reminders, sync, report export, ICE, UI primitives) via **dependency injection**. myHealth supplies its own config, schema, domain logic, and the one genuinely new subsystem: the **medical document import pipeline**. The app **never depends on a sibling app**; if the shared package does not yet exist, these subsystems are implemented in-app and extracted later. This plan marks each subsystem as *shared-core* or *app-specific*.
+**Design stance:** myHealth is a **standalone** local-first app built on a **shared core package** (`sharedcorelib` — see [`SHARED_CORE.md`](./SHARED_CORE.md)) that provides app-agnostic subsystems (vault, masters/OTA, tiers, reminders, sync, report export, ICE, UI primitives) via **dependency injection**. myHealth supplies its own config, schema, domain logic, and the one genuinely new subsystem: the **medical document import pipeline**. The app **never depends on a sibling app**; if the shared package does not yet exist, these subsystems are implemented in-app and extracted later. This plan marks each subsystem as *shared-core* or *app-specific*.
 
 ---
 
@@ -23,7 +23,8 @@
 | Crypto for exports | PBKDF2 → AES-GCM (`packageCrypto.ts` equivalent) |
 | Masters/OTA | Signed (Ed25519) + encrypted (AES-GCM) bundles from GitHub Releases; receive-only |
 | Reminders | derived + manual; OS notifications via `tauri-plugin-notification` |
-| Sync | Optional LAN device-to-device, LWW, no backend (gated to expert) |
+| Sync | Optional LAN device-to-device, LWW, no backend (gated to **Champion** tier) |
+| Tiers | App-defined **ordered ladder** (Starter→Tracker→Caretaker→Champion + grant tiers) passed to the shared engine; local-only unlock predicates |
 | Reports | HTML → PDF, self-contained |
 | Path alias | `@/` → `src/` |
 
@@ -90,8 +91,11 @@ Numbered, append-only, `include_str!`'d into `lib.rs` — shared migration disci
 | 0019 | directory (partners) | health-professionals directory — shared directory schema (`partners`) |
 | 0020 | health_items | OTA items catalog (food/drinks/supplements/equipment…) |
 | 0021 | sync | device-sync change log — shared sync schema |
+| 0022 | daily habits | `daily_tasks` (profile_id, title, recurrence, reminder_time), `task_completions` (task_id, date), `water_log` (profile_id, day, glasses, target), `schedule_blocks` (profile_id, kind, start, end, ref) |
 
 (Exact numbering finalized at implementation; this is the shape, not the contract.)
+
+> **Tier config (not a migration):** the Starter→Tracker→Caretaker→Champion ladder + grant tiers is an **app-supplied ordered list** of `{ name, unlockPredicate }` passed to the shared tier engine (so `sharedcorelib` must support an N-tier ladder, not a hardcoded 3). Unlock predicates read the local usage telemetry (`app_launches`, distinct active days, features touched) + app data (profile count, goals set) — all on-device. Per-feature **Nudge** prerequisites live in the shared gating store.
 
 ---
 
@@ -124,7 +128,7 @@ Ship the architecture doc's stack (PyMuPDF, OpenCV, PaddleOCR/Tesseract, optiona
 
 ---
 
-## 5. Shared-core subsystems (consumed via `@myshared/core`)
+## 5. Shared-core subsystems (consumed via `sharedcorelib`)
 
 Each row is a **mechanism** provided by the shared core, parameterized by **app-supplied config** (dependency injection — no module-level singletons). myHealth provides the config/adapters in the right column. If the shared package isn't available yet, the same subsystem is implemented in-app and extracted later. See [`SHARED_CORE.md`](./SHARED_CORE.md) for the full contract.
 
@@ -149,8 +153,8 @@ The **double-gate rule** for master content (tier earned **AND** owner-published
 **Phase 0 — scaffold (clone the skeleton).**
 Bootstrap Tauri+React+TS from myFinance's structure; settings store, AppShell, routing, SQLite client, migrations 0001–0002, vault unlock. `npm run dev` (browser, no DB) + `npm run tauri:dev` parity.
 
-**Phase 1 — the core record (no import yet).**
-Profiles (self+family), metrics + manual entry forms, goals + deterministic projection, document vault, ICE card, reminders engine, doctor-visit report. This is a complete, useful app on manual data alone.
+**Phase 1 — the core record + calm first-run (no import yet).**
+Profiles (self+family), metrics + manual entry forms, goals + deterministic projection, document vault, ICE card, reminders engine, doctor-visit report. **Plus the Starter experience: the Today view, water intake + reminders, and daily health tasks (§4.N of the product doc), and the progressive-disclosure shell** — the Starter→Tracker→Caretaker→Champion ladder with Open/Nudge/Hidden states — so the app feels small and unintimidating from first launch while heavier features stay hidden/nudged until earned. (The daily/weekly schedule opens at Tracker.) This is a complete, useful app on manual data alone.
 
 **Phase 2 — the tractable 80% of import.**
 Native-text PDF fast path (TS). Sidecar for image-normalization + printed OCR. **Pathology table extraction + test normalization → metrics/lab history.** Printed-prescription extraction + formulary match → medications. Confidence-tiered review UI + correction logging. (Mirrors the architecture doc's Phase 1.)
@@ -195,7 +199,7 @@ Use logged corrections to fine-tune recognition for the user's own handwriting/l
 
 Full design in [`SHARED_CORE.md`](./SHARED_CORE.md) §7. Summary as it affects myHealth:
 
-- **Two layers.** The build-time TS/React core library is **bundled into myHealth's webview bundle** (small; not runtime-shared). The **heavy runtime assets** — the OCR sidecar + models (§4) and the **OTA masters download cache** — install into a **shared per-user suite dir** (`%LOCALAPPDATA%\MyAppSuite\core` and platform equivalents) and are **reused** across suite apps.
+- **Two layers.** The build-time TS/React core library is **bundled into myHealth's webview bundle** (small; not runtime-shared). The **heavy runtime assets** — the OCR sidecar + models (§4) and the **OTA masters download cache** — install into a **shared per-user suite dir** (`%LOCALAPPDATA%\SharedCoreLib\core` and platform equivalents) and are **reused** across suite apps.
 - **Startup bootstrap (Rust, `lib.rs` setup).** On launch: lay down / upgrade the shared assets from myHealth's bundled copy only if absent or older; otherwise reuse. Register myHealth in the manifest `owners[]`. **Standalone fallback:** if the shared dir is missing/unwritable, use myHealth's own bundled copy — so myHealth installed alone always works.
 - **Uninstall** removes myHealth from `owners[]`; the shared dir is deleted only when empty.
 - **Masters cache** path is injected = `<shared dir>/masters` so whichever suite app pulls first downloads, and the rest reuse the bytes (each still applies only its own registered master types to its own SQLite).

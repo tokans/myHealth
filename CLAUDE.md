@@ -31,7 +31,7 @@ Do **not** treat docs as optional cleanup. A feature is not "done" until the doc
 
 A private, offline, **client-only** family health companion. Build profiles + goals for self & family, track metrics/vitals, and import medical documents (prescriptions + lab reports) via a local CPU pipeline.
 
-**Independence:** myHealth is **fully standalone** — it must build and run without any other app installed. It is one of a family of independent local-first apps that *optionally* share a common substrate package (`@myshared/core`); it does **not** depend on myFinance or any sibling app. See `docs/SHARED_CORE.md`. Read `docs/PRODUCT_FEATURES.md`, `docs/PLAN.md`, and `docs/SHARED_CORE.md` before making architectural decisions.
+**Independence:** myHealth is **fully standalone** — it must build and run without any other app installed. It is one of a family of independent local-first apps that *optionally* share a common substrate package (`sharedcorelib`); it does **not** depend on myFinance or any sibling app. See `docs/SHARED_CORE.md`. Read `docs/PRODUCT_FEATURES.md`, `docs/PLAN.md`, and `docs/SHARED_CORE.md` before making architectural decisions.
 
 ## Hard constraints (do not violate without owner sign-off)
 
@@ -41,6 +41,7 @@ A private, offline, **client-only** family health companion. Build profiles + go
 - **No cloud LLM; no LLM in product logic.** Everything deterministic. The *only* ML is small, **local, CPU** OCR models in the import pipeline — **never authority**; drug name, dosage, and lab values from non-native-text sources are **confirm-required** (human-in-the-loop).
 - **Append-only migrations.** Never edit a shipped migration.
 - **Gated master content is double-gated** — visible only when the user's tier is reached **AND** the owner has published a signed bundle. No locked teaser before data exists.
+- **Progressive disclosure is mandatory.** Newcomers see a calm, small app (Starter tier). Features are **Open / Nudge (shown-locked with a one-line CTA) / Hidden (not rendered until a tier)**. Tier ladder: 🌱 Starter → 📈 Tracker → 🧭 Caretaker → 🏆 Champion (+ grant tiers 💗 Supporter, ✅ Verified Pro). The ladder is app-defined config on the shared tier engine; unlock signals are **local-only** telemetry. See `docs/PRODUCT_FEATURES.md` §4.J and §6. Do not surface advanced features to a Starter user.
 - **Shared-core install is refcounted, with a standalone fallback.** Heavy runtime assets (OCR sidecar/models, OTA masters cache) install once into a shared per-user suite dir and are reused by sibling apps; the app must still run from its **own bundled copy** if the shared dir is absent. Removing one app must never break another. Never share the vault, DB, or settings. See `docs/SHARED_CORE.md` §7.
 
 ## Planned technology (shared local-first stack — see `docs/PLAN.md` §1)
@@ -54,7 +55,7 @@ Tauri v2 (Rust shell) + React 18 + TypeScript + Vite · HashRouter · Zustand ·
 > Code does not exist yet. This section describes the *intended* layout from `docs/PLAN.md`; keep it in sync as modules land.
 
 - `src-tauri/` — Rust shell: `lib.rs` registers plugins + embeds numbered migrations; `capabilities/default.json` is the permission allowlist; possible parser-sidecar bridge.
-- `src/pages/` — Profiles, Goals, Metrics, Import, Medications, Vault, Timeline, Immunizations, Directory (gated), etc.
+- `src/pages/` — Today (daily tasks + water), Profiles, Goals, Metrics, Schedule, Import, Medications, Vault, Timeline, Immunizations, Directory (gated), etc.
 - `src/domain/` — **pure** deterministic logic (goal projection, trend/range flagging, vaccine/screening schedules, care-plan templates, ICE). No DB, no React.
 - `src/db/` — typed wrappers over migration SQL (`client.ts` lazily opens the DB; `getDb()` throws outside Tauri — gate with `isTauri()`).
 - `src/import/` — capture quality gate, confidence-tiered review UI, field→data mapping, correction logging.
@@ -63,7 +64,7 @@ Tauri v2 (Rust shell) + React 18 + TypeScript + Vite · HashRouter · Zustand ·
 - `src/stores/` — settings, profiles, tier, gating (Zustand).
 - `src/lib/` — environment, tiers/gamification, gating, notify, report export.
 
-## Shared-core map (consume from `@myshared/core`, don't reinvent)
+## Shared-core map (consume from `sharedcorelib`, don't reinvent)
 
 Vault & doc crypto · masters/OTA · tiers & feature-gating · reminders (derived + manual + OS notifications) · report/PDF export · ICE/emergency · LAN sync · UI primitives. These are app-agnostic mechanisms parameterized by app-supplied config (dependency injection). See `docs/PLAN.md` §5 and `docs/SHARED_CORE.md`. If the shared package isn't available yet, implement in-app and extract later — **never** add a runtime dependency on a sibling app.
 

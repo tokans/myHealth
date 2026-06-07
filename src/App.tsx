@@ -4,10 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { isTauri } from "@/lib/environment";
 import { recordLaunch } from "@/db/usage";
+import { initSharedDb } from "@/db/sharedDb";
 import { runHabitReminderSweep } from "@/lib/reminderSweep";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
 import { useSettingsStore } from "@/stores/settings.store";
+import { useProfileStore } from "@/stores/profile.store";
 
 import Today from "@/pages/Today";
 import Profiles from "@/pages/Profiles";
@@ -26,6 +28,7 @@ const queryClient = new QueryClient();
 export default function App() {
   const refreshTier = useTierStore((s) => s.refresh);
   const refreshGating = useGatingStore((s) => s.refresh);
+  const refreshProfiles = useProfileStore((s) => s.refresh);
   const hydrateSettings = useSettingsStore((s) => s.hydrate);
 
   useEffect(() => {
@@ -36,8 +39,10 @@ export default function App() {
         } catch (e) {
           console.error("recordLaunch failed:", e);
         }
+        // Register schemas + ensure the shared common ICE card table (best-effort).
+        void initSharedDb();
       }
-      await Promise.all([hydrateSettings(), refreshTier(), refreshGating()]);
+      await Promise.all([hydrateSettings(), refreshTier(), refreshGating(), refreshProfiles()]);
 
       // Raise habit reminders once the UI is idle so startup is never blocked.
       const sweep = () => void runHabitReminderSweep();
@@ -48,7 +53,7 @@ export default function App() {
         else setTimeout(sweep, 2000);
       }
     })();
-  }, [hydrateSettings, refreshTier, refreshGating]);
+  }, [hydrateSettings, refreshTier, refreshGating, refreshProfiles]);
 
   return (
     <QueryClientProvider client={queryClient}>

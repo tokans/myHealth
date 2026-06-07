@@ -1,34 +1,21 @@
-import { useEffect, useState } from "react";
-import { isTauri } from "@/lib/environment";
-import { getSelfProfile, listProfiles, type Profile } from "@/db/profiles";
+import { useEffect } from "react";
+import { useProfileStore, selectActiveProfile } from "@/stores/profile.store";
 
 /**
- * The profile the Today view / habits are scoped to: the "self" profile, else the
- * first profile. Null when none exists yet (onboarding). No-ops in browser preview.
+ * The profile the current view / habits are scoped to. Backed by the global
+ * profile store (`profile.store.ts`) so switching the active person — e.g. from
+ * the profile drawer — re-scopes every page. Resolves to the selected profile,
+ * else self, else the first profile; null during onboarding / browser preview.
  */
-export function useActiveProfile(refreshKey = 0) {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useActiveProfile() {
+  const refresh = useProfileStore((s) => s.refresh);
+  const loaded = useProfileStore((s) => s.loaded);
+  const loading = useProfileStore((s) => s.loading);
+  const profile = useProfileStore(selectActiveProfile);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!isTauri()) {
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-      try {
-        const self = (await getSelfProfile()) ?? (await listProfiles())[0] ?? null;
-        if (!cancelled) setProfile(self);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
+    if (!loaded) void refresh();
+  }, [loaded, refresh]);
 
   return { profile, loading };
 }

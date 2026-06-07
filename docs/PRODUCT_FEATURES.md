@@ -161,6 +161,7 @@ Uses the shared ICE/emergency primitives, narrowed to medical.
 
 - A printable/shareable **medical ICE card** per profile: blood group, allergies, chronic conditions, current meds, emergency contacts, primary doctor, insurance, organ-donor & advance-directive notes.
 - Click-to-call/email emergency contacts (deterministic regex extraction from the shared emergency helpers).
+- **Shared across the suite:** the card is mirrored into a single common suite-DB table (`common#IceCard`, keyed per person) so another Tokans app (e.g. myFinance) reads and edits the same emergency contact — never a duplicate. Standalone-safe: degrades to the per-profile card when the shared `suite.db` is absent.
 - Always shows the universal emergency disclaimer.
 
 ### 4.L Reports & doctor-visit summary *(high value)*
@@ -176,7 +177,7 @@ The friendly front door that makes the app a daily habit and drives the usage si
 - **Today view** — the default landing screen at **Starter** tier. A tiny, encouraging checklist of small actions: *log your weight, drink water, take your meds, take a short walk.* Tasks come from the user's own data (active meds → "take meds"; active goals → a nudge) plus a couple of universal starter habits. Checking items off is one tap and feeds adherence/active-day signals. Deliberately short — never a wall of tasks.
 - **Water intake** *(Starter)* — a simple hydration tracker with a target (deterministic default by body weight/sex, fully editable) and **+1 glass** quick-add. Opt-in **water reminders** spaced across waking hours (e.g. every 2h, user-set), delivered through the shared reminder/notification engine (§4.E). Hydration trend feeds an optional habit goal.
 - **Daily health tasks (custom)** *(Starter → richer at Tracker)* — user-defined recurring tasks (walk 20 min, BP reading, stretch, meditation) with simple schedules (daily / weekdays / specific days) and reminders. Completion history shows a gentle streak.
-- **Daily / weekly schedule** *(Tracker)* — a planned day/week laying out medication times, meals, activity blocks, and appointments on a timeline, generating the right reminders. At **Starter** this appears as a **Nudge** ("complete a few days of tasks to plan your day"); it fully opens at **Tracker**. Per-profile, so a caregiver can run a parent's or child's schedule too.
+- **Daily / weekly schedule** *(Tracker)* — a planned day/week laying out medication times, meals, activity blocks, and appointments on a timeline, generating the right reminders. At **Starter** this is **Hidden** (newcomers see a calm, water-first app); it appears and fully opens at **Tracker**. Per-profile, so a caregiver can run a parent's or child's schedule too.
 
 All of the above are **deterministic and offline**; reminders are local OS notifications with a graceful no-op when permission isn't granted. No coaching language implying medical advice.
 
@@ -210,12 +211,11 @@ Maps each surface to a tier (§4.J) and a visibility **state**: **Open** (usable
 
 | Surface | Tier | State before unlock |
 |---|---|---|
-| Own profile · Today view (daily tasks + water) · vitals logging · add-a-document (simple) | **Starter** | Open |
-| Set a health goal | Starter→**Tracker** | **Nudge:** *"Log a metric first for a baseline."* |
+| Own profile · Today view (daily tasks + water + water reminders) · vitals logging · reminders inbox | **Starter** | Open |
 | Add a family member | Starter→**Tracker** | **Nudge:** *"Finish your own profile first."* |
-| Build your schedule | Starter→**Tracker** | **Nudge:** *"Do a few days of tasks to plan your day."* |
-| Goals + projections · trends/charts · family profiles · medications · daily/weekly schedule · reminders center | **Tracker** | Hidden at Starter |
-| Full import wizard · lab-trend dashboard · immunizations + screenings · ICE card · journal · appointments · doctor-visit summary | **Caretaker** | Hidden below Caretaker |
+| Import medical documents | **Caretaker** | **Nudge** (teased even at Starter): *"Reach the Caretaker tier to import prescriptions & lab reports."* — the headline reason to climb the ladder, so it's shown-locked rather than hidden |
+| Set a health goal · build your schedule · goals + projections · trends/charts · family profiles · medications · document vault · reminders center | **Tracker** | Hidden at Starter |
+| Lab-trend dashboard · immunizations + screenings · ICE card · journal · appointments · doctor-visit summary | **Caretaker** | Hidden below Caretaker |
 | Professionals directory (§4.H) | **Caretaker** | Hidden — **and** double-gated: appears only once the owner has published a signed bundle |
 | Device sync · family health pack export · care plans · advanced analytics | **Champion** | Hidden below Champion |
 | Health-items catalog (§4.I) + items-powered diaries | **Champion** | Hidden — **and** double-gated on a published bundle |

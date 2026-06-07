@@ -9,6 +9,7 @@ import { isTauri } from "@/lib/environment";
 import { listProfiles, createProfile, deleteProfile, type Profile } from "@/db/profiles";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
+import { useProfileStore } from "@/stores/profile.store";
 
 const RELATIONSHIPS = getCommonBaked("relationship"); // common master, reused (no recreate)
 
@@ -17,10 +18,12 @@ export default function Profiles() {
   const [show, setShow] = useState(false);
   const refreshTier = useTierStore((s) => s.refresh);
   const refreshGating = useGatingStore((s) => s.refresh);
+  const refreshProfiles = useProfileStore((s) => s.refresh);
 
   async function load() {
     if (!isTauri()) return;
     setProfiles(await listProfiles());
+    await refreshProfiles(); // keep the shared store (top-bar drawer) in sync
   }
   useEffect(() => {
     void load();

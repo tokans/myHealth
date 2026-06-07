@@ -12,7 +12,43 @@ import { listBaseline, addBaseline, deleteBaseline, type BaselineItem } from "@/
 import { listMedications, type Medication } from "@/db/medications";
 import { telHref, mailtoHref, ageFromDob, EMERGENCY_DISCLAIMER } from "@/lib/emergency";
 import { exportVisitReport } from "@/lib/visitReport";
+import { iceStore } from "@/db/sharedDb";
+import { iceCardPersonKey, type IceCard } from "sharedcorelib/ice";
 import { cn } from "@/lib/utils";
+
+/**
+ * Build the denormalized snapshot pushed to the shared common ICE card. myHealth is
+ * authoritative for the medical fields; for the contact fields we keep whatever the
+ * shared card already has (e.g. an edit made in myFinance) unless this profile sets them,
+ * so a medical-only refresh never clobbers the other app's contact edits.
+ */
+function buildIceSnapshot(
+  personKey: string,
+  profile: Profile,
+  allergies: BaselineItem[],
+  conditions: BaselineItem[],
+  meds: Medication[],
+  existing: IceCard | null,
+): IceCard {
+  const medLine = (m: Medication) =>
+    `${m.drug}${m.strength ? ` ${m.strength}` : ""}${m.schedule ? ` — ${m.schedule}` : ""}`;
+  return {
+    person_key: personKey,
+    display_name: profile.name,
+    blood_group: profile.blood_group ?? existing?.blood_group ?? null,
+    contact_name: profile.emergency_contact ?? existing?.contact_name ?? null,
+    contact_phone: profile.emergency_phone ?? existing?.contact_phone ?? null,
+    contact_email: profile.emergency_email ?? existing?.contact_email ?? null,
+    allergies: allergies.map((a) => (a.severity === "severe" ? `${a.label} (severe)` : a.label)).join(", ") || null,
+    conditions: conditions.map((c) => c.label).join(", ") || null,
+    medications: meds.map(medLine).join("; ") || null,
+    organ_donor: profile.organ_donor,
+    advance_directive: profile.advance_directive ?? existing?.advance_directive ?? null,
+    notes: existing?.notes ?? null,
+    updated_at: new Date().toISOString(),
+    source_app: "myHealth",
+  };
+}
 
 export default function Ice() {
   return (
@@ -28,13 +64,36 @@ function IceInner() {
   const [allergies, setAllergies] = useState<BaselineItem[]>([]);
   const [conditions, setConditions] = useState<BaselineItem[]>([]);
   const [meds, setMeds] = useState<Medication[]>([]);
+  const [shared, setShared] = useState<IceCard | null>(null);
   const [editing, setEditing] = useState(false);
 
   async function load(id: number) {
-    setProfile(await getProfile(id));
-    setAllergies(await listBaseline(id, "allergy"));
-    setConditions(await listBaseline(id, "condition"));
-    setMeds(await listMedications(id));
+    const [p, a, c, m] = await Promise.all([
+      getProfile(id),
+      listBaseline(id, "allergy"),
+      listBaseline(id, "condition"),
+      listMedications(id),
+    ]);
+    setProfile(p);
+    setAllergies(a);
+    setConditions(c);
+    setMeds(m);
+
+    // Mirror this profile's card into the shared common ICE table so it's available to
+    // the rest of the suite (e.g. myFinance), and pull back any cross-app edits to show.
+    if (p) {
+      try {
+        const store = await iceStore();
+        if (store) {
+          const key = iceCardPersonKey({ isSelf: p.is_self === 1, name: p.name });
+          const existing = await store.get(key);
+          await store.upsert(buildIceSnapshot(key, p, a, c, m, existing));
+          setShared(await store.get(key));
+        }
+      } catch (e) {
+        console.warn("shared ICE sync skipped:", e);
+      }
+    }
   }
   useEffect(() => {
     if (initial && isTauri()) void load(initial.id);
@@ -45,8 +104,11 @@ function IceInner() {
 
   const pid = profile.id;
   const age = ageFromDob(profile.dob);
-  const phone = profile.emergency_phone ?? "";
-  const email = profile.emergency_email ?? "";
+  // Contact fields fall back to the shared common card so edits made in another suite
+  // app (e.g. myFinance) appear here too.
+  const contactName = profile.emergency_contact ?? shared?.contact_name ?? "";
+  const phone = profile.emergency_phone ?? shared?.contact_phone ?? "";
+  const email = profile.emergency_email ?? shared?.contact_email ?? "";
 
   return (
     <div className="space-y-6">
@@ -131,9 +193,9 @@ function IceInner() {
           </Section>
 
           <Section title="In an emergency, contact">
-            {profile.emergency_contact || profile.emergency_phone ? (
+            {contactName || phone ? (
               <div className="space-y-1 text-sm">
-                <div className="font-medium">{profile.emergency_contact}</div>
+                <div className="font-medium">{contactName}</div>
                 <div className="flex flex-wrap gap-3">
                   {phone && (
                     <a className="flex items-center gap-1 text-primary hover:underline" href={telHref(phone) ?? undefined}>
@@ -163,6 +225,12 @@ function IceInner() {
 
       {editing && <EmergencyEditor profile={profile} onSaved={() => load(pid)} />}
 
+      {shared && (
+        <p className="text-xs text-muted-foreground">
+          This emergency card is shared across your Tokans suite apps, so contact details
+          stay in sync.
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">{EMERGENCY_DISCLAIMER}</p>
     </div>
   );

@@ -27,15 +27,17 @@ Architecturally it is a client-only Tauri v2 + React/TypeScript app with **no ba
 ## Core features (see the product doc for the full catalog)
 
 - **Daily habits** — a calm **Today** view (small task checklist), **water intake + reminders**, custom daily tasks, and a daily/weekly **schedule**
-- **Health profiles** for self + family (the backbone)
+- **Health profiles** for self + family (the backbone), with a one-tap **active-profile switcher** that re-scopes every page (a top-right profile drawer on mobile)
 - **Goals & tracking** with deterministic projections
 - **Metrics & vitals** time-series with reference-range flagging
 - **Document import** — native-text PDFs skip the wizard; scans/photos/handwriting go through a confidence-tiered, human-in-the-loop review
 - **Medications & reminders**, **immunizations & screenings**, **encrypted document vault**, **medical ICE card**, **doctor-visit summary export**
+- **Shared emergency card** — the medical ICE card lives in a common suite table, so the same emergency contact stays in sync across your Tokans apps (e.g. myFinance) without ever duplicating it
+- **Report an issue** straight to GitHub, and a **"Supported by Tokans.org"** attribution in the status bar (shared-core)
 - **Gated reference data** (professionals directory, health-items catalog) — visible only at a usage tier *and* once published
 
 ### Designed not to overwhelm
-New users land in a small **Starter** app. Features unlock as you use it, along a health-flavored ladder — **🌱 Starter → 📈 Tracker → 🧭 Caretaker → 🏆 Champion** (plus grant tiers Supporter & Verified Pro). Each feature is **Open**, a gentle **Nudge** ("log a metric to unlock goals"), or **Hidden** until earned. All unlock signals are computed **on-device** and never transmitted.
+New users land in a small, **water-first Starter** app — just Today (water + tasks), Vitals, Reminders, Profiles, and your Journey. Everything heavier (goals, schedule, trends, medications, document vault) stays **Hidden** until you reach **Tracker**, with one exception: **importing medical documents** is shown-locked as a gentle **Nudge** so you can see where the ladder leads. On phones the bottom bar stays deliberately tiny — **Today, Vitals, and More** — with profiles (add/switch) plus the Report-an-issue and Supported-by actions tucked into the top-right profile drawer, and everything else under **More**. Features unlock as you use it, along a health-flavored ladder — **🌱 Starter → 📈 Tracker → 🧭 Caretaker → 🏆 Champion** (plus grant tiers Supporter & Verified Pro). Each feature is **Open**, a **Nudge** (shown-locked with a one-line CTA), or **Hidden** until earned. All unlock signals are computed **on-device** and never transmitted.
 
 ## Roadmap (high level)
 

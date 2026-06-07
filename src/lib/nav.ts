@@ -22,7 +22,11 @@ export interface NavItem {
   icon: LucideIcon;
   /** Gate controlling visibility; omit for always-open Starter surfaces. */
   gate?: GateKey;
-  /** Show in the compact mobile bottom-tab bar. */
+  /**
+   * Show as its own tab in the compact mobile bottom bar (alongside the profile
+   * drawer + "More" sheet). Everything else lives under "More". Desktop shows the
+   * full list regardless. Profiles is reached via the top-right profile drawer.
+   */
   primary?: boolean;
 }
 
@@ -33,9 +37,9 @@ export interface NavItem {
  */
 export const NAV: NavItem[] = [
   { to: "/", label: "Today", icon: Home, primary: true },
-  { to: "/profiles", label: "Profiles", icon: Users, primary: true },
+  { to: "/profiles", label: "Profiles", icon: Users },
   { to: "/metrics", label: "Vitals", icon: Activity, primary: true },
-  { to: "/reminders", label: "Reminders", icon: Bell, primary: true },
+  { to: "/reminders", label: "Reminders", icon: Bell },
   { to: "/goals", label: "Goals", icon: Target, gate: "goals" },
   { to: "/schedule", label: "Schedule", icon: CalendarDays, gate: "schedule" },
   { to: "/trends", label: "Trends", icon: LineChart, gate: "trends" },
@@ -44,5 +48,5 @@ export const NAV: NavItem[] = [
   { to: "/ice", label: "Medical card", icon: HeartPulse, gate: "ice" },
   { to: "/import", label: "Import", icon: FileUp, gate: "import" },
   { to: "/directory", label: "Find a Pro", icon: Stethoscope, gate: "directory" },
-  { to: "/journey", label: "Your journey", icon: Compass, primary: true },
+  { to: "/journey", label: "Your journey", icon: Compass },
 ];

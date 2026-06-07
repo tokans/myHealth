@@ -86,6 +86,7 @@ fn try_ensure(dir: &Path) -> std::io::Result<()> {
     }
 
     fs::create_dir_all(dir.join("masters"))?; // OTA reference-data cache
+    fs::create_dir_all(dir.join("db"))?; // shared suite database (per-app + common tables)
     fs::create_dir_all(dir.join("bin"))?; // shared native sidecars (if any)
     fs::create_dir_all(dir.join("models"))?; // shared ML models (if any)
 
@@ -117,4 +118,27 @@ pub fn deregister_shared_core<R: Runtime>(app: &AppHandle<R>) {
 #[tauri::command]
 pub fn shared_core_masters_dir(app: AppHandle) -> String {
     ensure_shared_core(&app).to_string_lossy().to_string()
+}
+
+/// The shared suite DATABASE file: `<shared core>/db/suite.db` — the ONE SQLite the
+/// suite shares (per-app + common tables, governed by the schema registry; see
+/// sharedcorelib/db). Standalone-safe: falls back to this app's own data dir if the
+/// shared dir is unusable, so an app installed alone still works. Idempotent.
+pub fn shared_core_db_file<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
+    if let Some(dir) = shared_core_dir(app) {
+        if try_ensure(&dir).is_ok() {
+            return dir.join("db").join("suite.db");
+        }
+    }
+    app.path()
+        .app_data_dir()
+        .map(|d| d.join("suite.db"))
+        .unwrap_or_else(|_| PathBuf::from("suite.db"))
+}
+
+/// Webview-facing path to the shared suite DB, loaded via the SQL plugin as
+/// `Database.load("sqlite:" + path)`. Idempotent (ensures the shared dir first).
+#[tauri::command]
+pub fn shared_core_db_path(app: AppHandle) -> String {
+    shared_core_db_file(&app).to_string_lossy().to_string()
 }

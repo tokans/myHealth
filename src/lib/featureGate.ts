@@ -47,12 +47,12 @@ export interface HealthGate extends FeatureGate<GatingFlags, GateKey> {
 export const GATES: Record<GateKey, HealthGate> = {
   goals: {
     key: "goals",
-    isUnlocked: (f) => f.hasMetric,
-    lockBehavior: "nudge",
+    isUnlocked: (f) => f.isTracker,
+    lockBehavior: "hide",
     lockedTitle: "Set a health goal",
-    unlockHint: "Log a metric first so we have a baseline.",
-    ctaLabel: "Log a metric",
-    ctaTo: "/metrics",
+    unlockHint: "Reach the Tracker tier to set goals with a projected ETA.",
+    ctaLabel: "View your journey",
+    ctaTo: "/journey",
   },
   family: {
     key: "family",
@@ -66,11 +66,11 @@ export const GATES: Record<GateKey, HealthGate> = {
   schedule: {
     key: "schedule",
     isUnlocked: (f) => f.isTracker,
-    lockBehavior: "nudge",
+    lockBehavior: "hide",
     lockedTitle: "Plan your day",
-    unlockHint: "Do a few days of tasks to unlock the schedule.",
-    ctaLabel: "Go to Today",
-    ctaTo: "/",
+    unlockHint: "Reach the Tracker tier to unlock the schedule.",
+    ctaLabel: "View your journey",
+    ctaTo: "/journey",
   },
   trends: {
     key: "trends",
@@ -111,8 +111,10 @@ export const GATES: Record<GateKey, HealthGate> = {
   import: {
     key: "import",
     isUnlocked: (f) => f.isCaretaker,
-    lockBehavior: "hide",
-    lockedTitle: "Import documents",
+    // Shown-locked (nudge) even to newcomers: importing medical docs is the
+    // headline reason to climb to Caretaker, so we tease it rather than hide it.
+    lockBehavior: "nudge",
+    lockedTitle: "Import medical documents",
     unlockHint: "Reach the Caretaker tier to import prescriptions & lab reports.",
     ctaLabel: "View your journey",
     ctaTo: "/journey",

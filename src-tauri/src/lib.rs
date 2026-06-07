@@ -72,6 +72,7 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             core_bootstrap::shared_core_masters_dir,
+            core_bootstrap::shared_core_db_path,
         ])
         .setup(|app| {
             // L2 shared-core bootstrap: lay down or reuse the per-user suite dir and

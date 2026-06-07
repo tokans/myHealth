@@ -54,7 +54,8 @@ The answer is **not** "myHealth imports from myFinance." That couples two shippa
 | Reminder engine: derived+manual, sweep, bucketing, one-notification-per-sweep | The **derived-reminder generators** (from app data) |
 | LAN sync transport (Rust pipe) + envelope crypto + LWW merge | The **sync adapter**: which tables, change-set schema |
 | HTML→PDF report harness; PBKDF2→AES-GCM export packaging | The **report templates** |
-| ICE/emergency contact-extraction primitives | The ICE fields/copy |
+| ICE/emergency contact-extraction primitives **+ the common `IceCard` table & `createIceStore`** (a shared suite-DB row-set both apps read/edit) | The ICE fields/copy; which person keys to sync |
+| Shared **suite DB** + semantic **schema registry** (`sharedcorelib/db` + `/schema`): one `suite.db` with per-app + `owner:"common"` tables, governed by confidentiality | App schema descriptors; the Rust `shared_core_db_path` path |
 | UI kit: shadcn/ui primitives, `AppShell`, `FiniteSetInput`, forms, environment helper (`isTauri`) | Nav config, theme, copy, pages |
 | (Stretch) a shared **Rust crate** for plugin registration + `sync.rs` byte-pipe | Migration SQL files, `lib.rs` wiring |
 

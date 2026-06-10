@@ -4,6 +4,13 @@ import { isTauri } from "@/lib/environment";
 import { registerSchemas, type SqlDb } from "sharedcorelib/db";
 import { createIceStore, type IceStore } from "sharedcorelib/ice";
 import { MYHEALTH_SCHEMAS } from "./schemas";
+import { createHealthPeople, type HealthPeople } from "./entities";
+import { createHealthTimeline, type HealthTimeline } from "./sharedTimeline";
+import {
+  createHealthBreakGlassContributor,
+  type PersonBreakGlassInput,
+} from "@/breakglass/contributor";
+import type { BreakGlassContributor } from "sharedcorelib/breakglass";
 
 /**
  * Shared suite database wiring (sharedcorelib/db). The suite shares ONE SQLite —
@@ -51,8 +58,71 @@ export async function initSharedDb(): Promise<void> {
     const sql = adapter(await openSharedDb());
     await registerSchemas(sql, MYHEALTH_SCHEMAS);
     await createIceStore(sql).ensure();
+    // Shared-entity spine (person/event/document) + myHealth's medical facet.
+    await createHealthPeople(sql).ensure();
   } catch (e) {
     console.warn("shared-db init skipped:", e);
+  }
+}
+
+/**
+ * Handle on the shared person spine + myHealth's medical facet (profiles, pets, family).
+ * Returns null outside Tauri / if the shared DB can't be opened, so pages degrade to the
+ * app's own `myhealth.db` profiles. No health data egresses — all local SQLite.
+ */
+export async function healthPeople(): Promise<HealthPeople | null> {
+  if (!isTauri()) return null;
+  try {
+    return createHealthPeople(adapter(await openSharedDb()));
+  } catch (e) {
+    console.warn("shared people store unavailable:", e);
+    return null;
+  }
+}
+
+/**
+ * Handle on the shared `document` + `event` spine for medical docs and visits. Document
+ * BYTES stay AES-GCM under the per-device key in the vault; only opaque `blob_ref`
+ * metadata is mirrored here. Returns null outside Tauri. No health data egresses.
+ */
+export async function healthTimeline(): Promise<HealthTimeline | null> {
+  if (!isTauri()) return null;
+  try {
+    return createHealthTimeline(adapter(await openSharedDb()));
+  } catch (e) {
+    console.warn("shared timeline unavailable:", e);
+    return null;
+  }
+}
+
+/**
+ * myHealth's live break-glass contributor (the suite's SECOND consumer of core
+ * break-glass). It reads each person's common ICE card + medical facet from the shared
+ * suite DB and exposes them as tier-redacted sections. Returns null outside Tauri. The
+ * assembled slice is sealed by core under an out-of-band passphrase — NO health data
+ * egresses; this is local assembly only.
+ */
+export async function healthBreakGlassContributor(): Promise<BreakGlassContributor | null> {
+  if (!isTauri()) return null;
+  try {
+    const sql = adapter(await openSharedDb());
+    const people = createHealthPeople(sql);
+    const ice = createIceStore(sql);
+    return createHealthBreakGlassContributor(async (): Promise<PersonBreakGlassInput[]> => {
+      const all = await people.list();
+      const out: PersonBreakGlassInput[] = [];
+      for (const pw of all) {
+        out.push({
+          displayName: pw.person.display_name ?? pw.person.person_key,
+          ice: await ice.get(pw.person.person_key),
+          facet: pw.facet,
+        });
+      }
+      return out;
+    });
+  } catch (e) {
+    console.warn("break-glass contributor unavailable:", e);
+    return null;
   }
 }
 

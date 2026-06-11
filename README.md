@@ -34,6 +34,7 @@ Architecturally it is a client-only Tauri v2 + React/TypeScript app with **no ba
 - **Medications & reminders**, **immunizations & screenings**, **encrypted document vault**, **medical ICE card**, **doctor-visit summary export**
 - **Shared emergency card** — the medical ICE card lives in a common suite table, so the same emergency contact stays in sync across your Tokans apps (e.g. myFinance) without ever duplicating it
 - **Report an issue** straight to GitHub, and a **"Supported by Tokans.org"** attribution in the status bar (shared-core)
+- **Backup & restore (Settings)** — export everything (incl. this app's shared-suite tables) to one Excel workbook and re-import it on a new machine; secrets export only as one-way hashes (shared-core `sharedcorelib/backup`)
 - **Gated reference data** (professionals directory, health-items catalog) — visible only at a usage tier *and* once published
 
 ### Designed not to overwhelm

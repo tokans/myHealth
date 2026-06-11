@@ -48,6 +48,14 @@ function adapter(db: Database): SqlDb {
 }
 
 /**
+ * Open the shared suite DB and return it adapted to the lib's injected `SqlDb` interface
+ * (mirrors myFinance's helper) — used by the Settings Excel-backup wiring. Tauri-only.
+ */
+export async function openSharedDbAdapter(): Promise<SqlDb> {
+  return adapter(await openSharedDb());
+}
+
+/**
  * Register myHealth's schemas into the shared suite DB and ensure the common ICE table
  * exists. Best-effort + idempotent — call once on launch (inside Tauri). A schema
  * conflict THROWS (caught here) so the shared store is never corrupted.

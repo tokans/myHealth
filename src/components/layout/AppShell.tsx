@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HeartPulse, Bug } from "lucide-react";
+import { HeartPulse, Bug, Settings as SettingsIcon } from "lucide-react";
 import { SuiteShell, type SuiteNavItem, type SuiteAction } from "sharedcorelib/ui";
 import { cn } from "@/lib/utils";
 import { NAV, type NavItem } from "@/lib/nav";
@@ -55,6 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Suite-standard secondary actions (More drawer + desktop sidebar footer).
   const actions: SuiteAction[] = [
+    { key: "settings", label: "Settings", icon: SettingsIcon, to: "/settings" },
     { key: "report", label: "Report an issue", icon: Bug, onSelect: () => setReportOpen(true) },
   ];
 

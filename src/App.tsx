@@ -23,6 +23,7 @@ const Medications = lazy(() => import("@/pages/Medications"));
 const Documents = lazy(() => import("@/pages/Documents"));
 const Ice = lazy(() => import("@/pages/Ice"));
 const Journey = lazy(() => import("@/pages/Journey"));
+const Settings = lazy(() => import("@/pages/Settings"));
 const Placeholder = lazy(() =>
   import("@/pages/Placeholder").then((m) => ({ default: m.Placeholder })),
 );
@@ -105,6 +106,7 @@ export default function App() {
               }
             />
             <Route path="/journey" element={<Journey />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>

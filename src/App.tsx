@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
@@ -11,17 +11,21 @@ import { useGatingStore } from "@/stores/gating.store";
 import { useSettingsStore } from "@/stores/settings.store";
 import { useProfileStore } from "@/stores/profile.store";
 
-import Today from "@/pages/Today";
-import Profiles from "@/pages/Profiles";
-import Metrics from "@/pages/Metrics";
-import Reminders from "@/pages/Reminders";
-import Goals from "@/pages/Goals";
-import Schedule from "@/pages/Schedule";
-import Medications from "@/pages/Medications";
-import Documents from "@/pages/Documents";
-import Ice from "@/pages/Ice";
-import Journey from "@/pages/Journey";
-import { Placeholder } from "@/pages/Placeholder";
+// Routes are lazy-loaded so each page becomes its own chunk, keeping the entry
+// bundle small (only the shell + Today's first paint path load up front).
+const Today = lazy(() => import("@/pages/Today"));
+const Profiles = lazy(() => import("@/pages/Profiles"));
+const Metrics = lazy(() => import("@/pages/Metrics"));
+const Reminders = lazy(() => import("@/pages/Reminders"));
+const Goals = lazy(() => import("@/pages/Goals"));
+const Schedule = lazy(() => import("@/pages/Schedule"));
+const Medications = lazy(() => import("@/pages/Medications"));
+const Documents = lazy(() => import("@/pages/Documents"));
+const Ice = lazy(() => import("@/pages/Ice"));
+const Journey = lazy(() => import("@/pages/Journey"));
+const Placeholder = lazy(() =>
+  import("@/pages/Placeholder").then((m) => ({ default: m.Placeholder })),
+);
 
 const queryClient = new QueryClient();
 
@@ -59,6 +63,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <HashRouter>
         <AppShell>
+          <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<Today />} />
             <Route path="/profiles" element={<Profiles />} />
@@ -102,6 +107,7 @@ export default function App() {
             <Route path="/journey" element={<Journey />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </AppShell>
       </HashRouter>
     </QueryClientProvider>

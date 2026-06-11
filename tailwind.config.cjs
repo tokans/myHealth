@@ -1,50 +1,16 @@
 /** @type {import('tailwindcss').Config} */
+// Suite-shared theme via the core preset (token→var mapping, dark mode, animate plugin) —
+// see sharedCoreLib/CONTRACT.md §4.2. The content globs MUST include the shared UI source so
+// the shared primitives' (`SuiteShell`/`Sheet`) Tailwind classes compile instead of being purged.
+const preset = require("sharedcorelib/tailwind-preset");
+
 module.exports = {
-  darkMode: ["class"],
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
-  theme: {
-    container: {
-      center: true,
-      padding: "1rem",
-    },
-    extend: {
-      colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-    },
-  },
-  plugins: [require("tailwindcss-animate")],
+  presets: [preset],
+  content: [
+    "./index.html",
+    "./src/**/*.{ts,tsx}",
+    "../sharedCoreLib/src/ui/**/*.{ts,tsx}",
+  ],
+  // App-specific brand TOKEN VALUES are overridden in src/index.css (not here); add any
+  // app-only Tailwind extensions under theme.extend below — they merge over the preset.
 };

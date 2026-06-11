@@ -11,7 +11,7 @@
  * the workbook (only their metadata rows are).
  */
 import {
-  createExcelBackup, suiteSourceForApp,
+  createExcelBackup, suiteSourceFull,
   type ExcelBackup, type BackupSource,
 } from "sharedcorelib/backup";
 import { loadRegistry, type SqlDb } from "sharedcorelib/db";
@@ -36,8 +36,11 @@ async function appDbAdapter(): Promise<SqlDb> {
 export async function buildExcelBackup(): Promise<ExcelBackup> {
   const sources: BackupSource[] = [{ id: "app", db: await appDbAdapter() }];
   try {
+    // FULL suite dump: every installed app's tables in suite.db (not just ours) — any
+    // app's export is the suite-wide data inventory + backup; suite sheets restore
+    // from any app's workbook.
     const suite = await openSharedDbAdapter();
-    sources.push(suiteSourceForApp(suite, await loadRegistry(suite), APP_ID));
+    sources.push(suiteSourceFull(suite, await loadRegistry(suite)));
   } catch (e) {
     console.warn("excel backup: shared suite DB unavailable — backing up the app DB alone:", e);
   }

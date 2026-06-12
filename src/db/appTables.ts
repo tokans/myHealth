@@ -13,10 +13,11 @@
  *    `myhealth#HealthFacet`; what remains is `myhealth#Profile` — a THIN link table
  *    (integer app id ↔ `person_key`) so the app's historical integer keying keeps
  *    working while identity/medical truth lives on `common#Person` + the facet.
- *  - the legacy `documents` table collapsed onto `common#Document` (title/blob_ref/
- *    mime/person live on the spine); `myhealth#DocumentFacet` keeps only the
- *    app-specific extension fields — and `extracted_text_enc` is **vault-sealed
- *    ciphertext** (decision #26), tagged `Secret` so backup exports hash it.
+ *  - the legacy `documents` table stays a self-contained `myhealth#Document` table
+ *    (the live store the Documents page keys on); its `extracted_text` plaintext column
+ *    becomes `extracted_text_enc` — **vault-sealed ciphertext** (decision #26), tagged
+ *    `Secret` so backup exports hash it. The `common#Document` spine is mirrored for
+ *    cross-app timeline reads but the page does not write through it yet (see below).
  *
  * Confidentiality: health data is sensitive — medical tables are `Restricted` with
  * `personalData: true` (DPDP) on person-derived fields; wellness/engagement tables are
@@ -362,31 +363,32 @@ export const MEDICATION_SCHEMA: SchemaDescriptor = {
 };
 
 /**
- * `myhealth_documents` — the APP-SPECIFIC extension of the shared `common#Document`
- * spine row (which carries title / blob_ref / mime / person link). Document BYTES stay
- * AES-GCM vault blobs; `extracted_text_enc` is **vault-sealed ciphertext** of the OCR/
- * import extraction (decision #26) — `Secret`, so the backup exporter emits only a
- * sha256 fingerprint of it, never the value.
+ * `myhealth_documents` — medical document metadata (the live store the Documents page
+ * keys on). Document BYTES stay AES-256-GCM vault blobs under the per-device DEK; only
+ * the opaque `file_name` (the vault blob uuid) lands here. `extracted_text_enc` is
+ * **vault-sealed ciphertext** of the OCR/import extraction (decision #26, sealed via the
+ * SAME `vault.sealBytes` DEK primitive) — `Secret`, so the backup exporter emits only a
+ * sha256 fingerprint, never the value. This fixes the legacy bug where
+ * `documents.extracted_text` was PLAINTEXT while the blob bytes were encrypted.
+ *
+ * Spine note (invariant 6): the shared `common#Document` spine exists and is mirrored for
+ * cross-app timeline reads via `db/sharedTimeline.ts`, but the medical Documents page does
+ * NOT yet write through it — so this table is the app's self-contained live store, not a
+ * duplicate of actively-used spine data. A later pass can collapse title/blob_ref/mime
+ * onto `common#Document` once the page is rewired through the timeline store.
  */
-export const DOCUMENT_FACET_SCHEMA: SchemaDescriptor = {
+export const DOCUMENT_SCHEMA: SchemaDescriptor = {
   namespace: "myhealth",
-  name: "DocumentFacet",
-  plural: "DocumentFacets",
+  name: "Document",
+  plural: "Documents",
   dbAlias: "myhealth_documents",
   schemaType: "Table",
   confidentiality: "Restricted",
   owner: APP_ID,
   purpose:
-    "myHealth's extension fields for a shared common#Document (medical doc type, provider, date, size, sealed extracted text).",
+    "Medical document metadata (type, title, provider, date, blob ref, size, sealed extracted text); bytes stay AES-GCM vault blobs.",
   fields: [
     idField("app-side integer document id (the id pages key on)"),
-    {
-      name: "document_id",
-      dataType: "id",
-      required: true,
-      index: "Unique",
-      description: "id of the common#Document spine row this extends",
-    },
     profileIdField("Scope documents to a person's profile."),
     {
       name: "doc_type",
@@ -397,8 +399,11 @@ export const DOCUMENT_FACET_SCHEMA: SchemaDescriptor = {
       },
       description: "medical document kind",
     },
+    { name: "title", dataType: "string", required: true, personalData: true, purpose: "Human label for the medical document.", description: "document title" },
     { name: "provider", dataType: "string", personalData: true, purpose: "Record the issuing provider/clinic.", description: "provider (optional)" },
     { name: "doc_date", dataType: "date", description: "'YYYY-MM-DD' (optional)" },
+    { name: "file_name", dataType: "string", required: true, description: "vault blob uuid (bytes are AES-GCM sealed; never plaintext here)" },
+    { name: "mime", dataType: "string", description: "MIME type (optional)" },
     { name: "size_bytes", dataType: "number", description: "original file size" },
     {
       name: "extracted_text_enc",
@@ -406,17 +411,9 @@ export const DOCUMENT_FACET_SCHEMA: SchemaDescriptor = {
       confidentiality: "Secret",
       personalData: true,
       purpose: "Searchable text extracted from the medical document — vault-sealed (AES-256-GCM under the per-device DEK), never stored in plaintext.",
-      description: "vault-sealed extracted text: 'scv1:' + base64(SCV1 sealed bytes); null when not extracted",
+      description: "vault-sealed extracted text: 'scv1:' + base64(GCM sealed bytes); null when not extracted",
     },
     createdAtField,
-  ],
-  relationships: [
-    {
-      name: "document",
-      relationshipType: "One-One",
-      relatedSchema: "common#Document",
-      description: "the shared spine row carrying title/blob_ref/mime/person",
-    },
   ],
 };
 
@@ -455,6 +452,6 @@ export const APP_TABLE_SCHEMAS: SchemaDescriptor[] = [
   WATER_LOG_SCHEMA,
   SCHEDULE_BLOCK_SCHEMA,
   MEDICATION_SCHEMA,
-  DOCUMENT_FACET_SCHEMA,
+  DOCUMENT_SCHEMA,
   MIGRATION_LEDGER_SCHEMA,
 ];

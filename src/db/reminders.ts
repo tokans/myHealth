@@ -1,4 +1,5 @@
 import { execute, query } from "./client";
+import { T } from "./tables";
 import type { DerivedReminder } from "@/domain/derivedReminders";
 
 export interface Reminder {
@@ -17,11 +18,11 @@ export interface Reminder {
 }
 
 export async function listOpenReminders(): Promise<Reminder[]> {
-  return query<Reminder>(`SELECT * FROM reminders WHERE status = 'open' ORDER BY due_date ASC`);
+  return query<Reminder>(`SELECT * FROM ${T.reminders} WHERE status = 'open' ORDER BY due_date ASC`);
 }
 
 export async function markReminderFired(id: number, today: string): Promise<void> {
-  await execute(`UPDATE reminders SET last_fired_on = ?2 WHERE id = ?1`, [id, today]);
+  await execute(`UPDATE ${T.reminders} SET last_fired_on = ?2 WHERE id = ?1`, [id, today]);
 }
 
 /**
@@ -33,7 +34,7 @@ export async function markReminderFired(id: number, today: string): Promise<void
 export async function syncDerivedReminders(desired: DerivedReminder[]): Promise<void> {
   for (const d of desired) {
     await execute(
-      `INSERT INTO reminders (profile_id, kind, source, dedupe_key, title, detail, due_date)
+      `INSERT INTO ${T.reminders} (profile_id, kind, source, dedupe_key, title, detail, due_date)
        VALUES (?1, 'derived', ?2, ?3, ?4, ?5, ?6)
        ON CONFLICT(dedupe_key) DO UPDATE SET
          title = excluded.title,
@@ -47,12 +48,12 @@ export async function syncDerivedReminders(desired: DerivedReminder[]): Promise<
 
   const keys = desired.map((d) => d.dedupe_key);
   if (keys.length === 0) {
-    await execute(`DELETE FROM reminders WHERE kind = 'derived' AND status = 'open'`);
+    await execute(`DELETE FROM ${T.reminders} WHERE kind = 'derived' AND status = 'open'`);
     return;
   }
   const placeholders = keys.map((_, i) => `?${i + 1}`).join(", ");
   await execute(
-    `DELETE FROM reminders
+    `DELETE FROM ${T.reminders}
        WHERE kind = 'derived' AND status = 'open' AND dedupe_key NOT IN (${placeholders})`,
     keys,
   );
@@ -65,7 +66,7 @@ export async function createManualReminder(r: {
   due_date: string;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO reminders (profile_id, kind, title, detail, due_date)
+    `INSERT INTO ${T.reminders} (profile_id, kind, title, detail, due_date)
      VALUES (?1, 'manual', ?2, ?3, ?4)`,
     [r.profile_id ?? null, r.title, r.detail ?? null, r.due_date],
   );
@@ -73,13 +74,13 @@ export async function createManualReminder(r: {
 }
 
 export async function snoozeReminder(id: number, until: string): Promise<void> {
-  await execute(`UPDATE reminders SET snoozed_until = ?2 WHERE id = ?1`, [id, until]);
+  await execute(`UPDATE ${T.reminders} SET snoozed_until = ?2 WHERE id = ?1`, [id, until]);
 }
 
 export async function completeReminder(id: number): Promise<void> {
-  await execute(`UPDATE reminders SET status = 'done' WHERE id = ?1`, [id]);
+  await execute(`UPDATE ${T.reminders} SET status = 'done' WHERE id = ?1`, [id]);
 }
 
 export async function dismissReminder(id: number): Promise<void> {
-  await execute(`UPDATE reminders SET status = 'dismissed' WHERE id = ?1`, [id]);
+  await execute(`UPDATE ${T.reminders} SET status = 'dismissed' WHERE id = ?1`, [id]);
 }

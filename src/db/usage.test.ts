@@ -18,7 +18,7 @@ describe("recordLaunch", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await recordLaunch();
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO app_launches");
+    expect(sql).toContain("INSERT INTO myhealth_app_launches");
     expect(sql).toContain("ON CONFLICT(launch_day) DO UPDATE SET opens = opens + 1");
     // single param: the local day string
     expect(params).toHaveLength(1);
@@ -32,7 +32,7 @@ describe("countDistinctLaunchDays", () => {
     mockQuery.mockResolvedValue([{ n: 12 }] as any);
     expect(await countDistinctLaunchDays()).toBe(12);
     const [sql] = mockQuery.mock.calls[0];
-    expect(sql).toContain("FROM app_launches");
+    expect(sql).toContain("FROM myhealth_app_launches");
   });
 
   it("returns 0 when empty", async () => {

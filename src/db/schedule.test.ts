@@ -18,7 +18,7 @@ describe("listBlocks", () => {
     mockQuery.mockResolvedValue([] as any);
     await listBlocks(4);
     const [sql, params] = mockQuery.mock.calls[0];
-    expect(sql).toContain("FROM schedule_blocks");
+    expect(sql).toContain("FROM myhealth_schedule_blocks");
     expect(sql).toContain("ORDER BY start_min ASC, id ASC");
     expect(params).toEqual([4]);
   });
@@ -30,7 +30,7 @@ describe("createBlock", () => {
     const id = await createBlock({ profile_id: 1, kind: "meal", title: "Lunch", start_min: 720 });
     expect(id).toBe(3);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO schedule_blocks");
+    expect(sql).toContain("INSERT INTO myhealth_schedule_blocks");
     expect(params).toEqual([1, "meal", "Lunch", 720, null, "daily"]);
   });
 
@@ -52,7 +52,7 @@ describe("deleteBlock", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await deleteBlock(9);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("DELETE FROM schedule_blocks WHERE id = ?1");
+    expect(sql).toContain("DELETE FROM myhealth_schedule_blocks WHERE id = ?1");
     expect(params).toEqual([9]);
   });
 });

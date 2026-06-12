@@ -23,7 +23,7 @@ describe("listMedications", () => {
     mockQuery.mockResolvedValue([] as any);
     await listMedications(3);
     const [sql, params] = mockQuery.mock.calls[0];
-    expect(sql).toContain("FROM medications");
+    expect(sql).toContain("FROM myhealth_medications");
     expect(sql).toContain("AND active = 1");
     expect(params).toEqual([3]);
   });
@@ -53,7 +53,7 @@ describe("createMedication", () => {
     const id = await createMedication({ profile_id: 2, drug: "Aspirin" });
     expect(id).toBe(11);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO medications");
+    expect(sql).toContain("INSERT INTO myhealth_medications");
     expect(params).toEqual([2, "Aspirin", null, null, null, null, null, null]);
   });
 
@@ -84,7 +84,7 @@ describe("archiveMedication", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await archiveMedication(7);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("UPDATE medications SET active = 0");
+    expect(sql).toContain("UPDATE myhealth_medications SET active = 0");
     expect(sql).toContain("end_date = date('now')");
     expect(params).toEqual([7]);
   });

@@ -1,66 +1,16 @@
 use argon2::{Algorithm, Argon2, Params, Version};
-use tauri_plugin_sql::{Migration, MigrationKind};
 
 mod core_bootstrap;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let migrations = vec![
-        Migration {
-            version: 1,
-            description: "settings + usage telemetry",
-            sql: include_str!("../migrations/0001_init.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 2,
-            description: "profiles (self + family) + baseline",
-            sql: include_str!("../migrations/0002_profiles.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 3,
-            description: "metrics / vitals time-series",
-            sql: include_str!("../migrations/0003_metrics.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 4,
-            description: "health goals",
-            sql: include_str!("../migrations/0004_goals.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 5,
-            description: "reminders (manual + derived)",
-            sql: include_str!("../migrations/0005_reminders.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 6,
-            description: "daily habits: tasks, water, schedule",
-            sql: include_str!("../migrations/0006_daily_habits.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 7,
-            description: "medications",
-            sql: include_str!("../migrations/0007_medications.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 8,
-            description: "profile emergency / ICE fields",
-            sql: include_str!("../migrations/0008_profile_emergency.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 9,
-            description: "encrypted document metadata",
-            sql: include_str!("../migrations/0009_documents.sql"),
-            kind: MigrationKind::Up,
-        },
-    ];
+    // K1 consolidation (prompts/10 decision 1/4): the per-app `myhealth.db` and its
+    // Tauri-plugin migration array (0001–0009) are RETIRED. All myHealth data now lives in
+    // the ONE shared suite DB as app-owned `myhealth_*` tables, created from semantic
+    // SchemaDescriptors + aux-SQL on the JS side (src/db/appTables.ts, auxMigrations.ts).
+    // The SQL plugin stays registered (below) only so the app can open DBs by path —
+    // including the legacy `myhealth.db` during the one-time migration (src/db/consolidate.ts),
+    // which copies it into suite.db and then deletes the file.
 
     // ── PER-APP SECRET — DO NOT CHANGE ────────────────────────────────────────
     // Stronghold's snapshot key is derived from the user's master password with
@@ -99,11 +49,7 @@ pub fn run() {
             })
             .build(),
         )
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:myhealth.db", migrations)
-                .build(),
-        )
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

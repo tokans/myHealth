@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
+import { memberClassOf } from "sharedcorelib/entities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GATES, type GateKey } from "@/lib/featureGate";
+import { GATE_CATEGORIES, memberPolicy } from "@/lib/memberPolicy";
 import { useGatingStore } from "@/stores/gating.store";
+import { useProfileStore, selectActiveProfile } from "@/stores/profile.store";
 
 /** Locked-state card shown for a gated feature (both nudge and hidden routes). */
 export function LockedFeature({ gateKey }: { gateKey: GateKey }) {
@@ -28,9 +31,24 @@ export function LockedFeature({ gateKey }: { gateKey: GateKey }) {
   );
 }
 
-/** Render children when the gate is open; otherwise the locked CTA. */
+/**
+ * Render children when the gate is open; otherwise the locked CTA.
+ *
+ * ADDITIVE (K4) person-linked soft gate (decision 19, UI-soft): before the tier/reveal
+ * `isUnlocked` check, the ACTIVE profile's spine `member_class` is consulted against
+ * myHealth's child-soft policy. A sensitive-category gate (document vault / import,
+ * tagged `estate`) denied to a `child_user` renders the locked card. For the free
+ * single-user install — and for any profile with no member_class — `memberClassOf`
+ * resolves to `owner`, which is allowed everything, so behaviour is pixel-identical to
+ * pre-K4 (invariant 3). Medical features carry no category tag and stay visible to every
+ * member under the family-profile model (decision 18).
+ */
 export function FeatureGuard({ gateKey, children }: { gateKey: GateKey; children: React.ReactNode }) {
   const flags = useGatingStore();
-  const open = GATES[gateKey].isUnlocked(flags);
+  const activeProfile = useProfileStore(selectActiveProfile);
+  const memberClass = memberClassOf({ member_class: activeProfile?.member_class });
+  const categories = GATE_CATEGORIES[gateKey];
+  const memberAllowed = memberPolicy.isFeatureAllowed(memberClass, gateKey, categories);
+  const open = memberAllowed && GATES[gateKey].isUnlocked(flags);
   return open ? <>{children}</> : <LockedFeature gateKey={gateKey} />;
 }

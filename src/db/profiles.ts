@@ -19,6 +19,15 @@ export interface Profile {
   name: string;
   relationship: string | null;
   is_self: number;
+  /**
+   * The spine member-class (`common_person.member_class`): `owner | adult | child_user |
+   * managed_dependent`. Null/absent for a free single-user install (decision 15) — the
+   * historical no-login family-profile model never writes it, so it stays null and
+   * `memberClassOf` resolves it to `owner`. Only the PAID member-switch (set in
+   * myLifeAssistant) populates real classes; surfaced here so the additive paid
+   * `userSwitch` / child-soft FeatureGuard can read it WITHOUT re-modelling the spine.
+   */
+  member_class: string | null;
   dob: string | null;
   sex: "female" | "male" | "other" | "unspecified";
   blood_group: string | null;
@@ -54,6 +63,7 @@ const PROFILE_SELECT = `
     pr.display_name                                    AS name,
     pr.relationship_to_self                            AS relationship,
     CASE WHEN pr.relationship_to_self = 'self' THEN 1 ELSE 0 END AS is_self,
+    pr.member_class                                    AS member_class,
     pr.dob                                             AS dob,
     COALESCE(f.sex, 'unspecified')                     AS sex,
     f.blood_group                                      AS blood_group,

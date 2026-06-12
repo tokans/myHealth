@@ -81,3 +81,14 @@ export function selectTier(s: TierState): Tier {
 export function selectNextTier(s: TierState): Tier | null {
   return nextEarnedTiers(s.ctx)[0] ?? null;
 }
+
+/**
+ * Selector: is this install entitled to the PAID multi-user surfaces (decision 15)?
+ * Multi-user (the login-capable member switch + person-linked gating) is paid-gated; in
+ * myHealth the paid/grant signals are the grant-backed Supporter/Pro tiers. A free
+ * install has both false, so the paid `userSwitch` chrome never mounts (invariant 3) and
+ * the no-login family profiles (decision 18) remain the only person switcher.
+ */
+export function selectMultiUserEntitled(s: TierState): boolean {
+  return s.ctx.isSupporter || s.ctx.isPro;
+}

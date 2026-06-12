@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { isTauri } from "@/lib/environment";
 import { query } from "@/db/client";
+import { T } from "@/db/tables";
 
 export type Units = "metric" | "imperial";
 
@@ -33,7 +34,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       return;
     }
     try {
-      const rows = await query<{ key: string; value: string }>(`SELECT key, value FROM settings`);
+      const rows = await query<{ key: string; value: string }>(`SELECT key, value FROM ${T.settings}`);
       const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
       set({
         units: (map.units as Units) ?? DEFAULTS.units,

@@ -1,49 +1,26 @@
 /**
  * Excel backup/restore wiring (Settings → "Backup & restore").
  *
- * Thin glue over `sharedcorelib/backup` (subsystem #22): exports EVERYTHING this app
- * stores — all of `myhealth.db` plus myHealth's slice of the shared `suite.db` (its
- * owned facet + common spine tables, from the schema registry) — into one .xlsx, one
- * sheet per table, re-importable on another machine. Secret-tier / password-named
- * fields export as one-way sha256 fingerprints and are skipped on import (core rule).
- * Stronghold vault contents (document blobs' keys) are not in SQLite and are never
- * exported; encrypted document BYTES live as vault blobs and are likewise not part of
- * the workbook (only their metadata rows are).
+ * Thin glue over `sharedcorelib/backup` (subsystem #22). Post-consolidation (prompts/10
+ * decisions 1 & 9) there is a SINGLE source: the FULL `suite.db` dump — every installed
+ * app's tables, one sheet per table, re-importable on another machine. The per-app
+ * `myhealth.db` is gone, so there is no separate "app" source any more. Secret-tier /
+ * password-named fields (e.g. the sealed `extracted_text_enc`) export as one-way sha256
+ * fingerprints and are skipped on import (core rule). Stronghold vault contents and
+ * encrypted document BYTES are not in SQLite and are never exported (only metadata rows).
  */
-import {
-  createExcelBackup, suiteSourceFull,
-  type ExcelBackup, type BackupSource,
-} from "sharedcorelib/backup";
-import { loadRegistry, type SqlDb } from "sharedcorelib/db";
-import { getDb } from "@/db/client";
+import { createExcelBackup, suiteSourceFull, type ExcelBackup } from "sharedcorelib/backup";
+import { loadRegistry } from "sharedcorelib/db";
 import { openSharedDbAdapter } from "@/db/sharedDb";
 import { APP_ID } from "@/db/healthFacet";
 
-/** Adapt the app's own Tauri-SQL handle (`myhealth.db`) to the lib's `SqlDb`. */
-async function appDbAdapter(): Promise<SqlDb> {
-  const db = await getDb();
-  return {
-    select: <T = Record<string, unknown>>(sql: string, params: unknown[] = []) =>
-      db.select<T[]>(sql, params),
-    execute: async (sql: string, params: unknown[] = []) => {
-      const r = await db.execute(sql, params);
-      return { rowsAffected: r.rowsAffected, lastInsertId: r.lastInsertId ?? undefined };
-    },
-  };
-}
-
-/** Build the backup engine over both stores. Tauri-only (the app DB throws in browser). */
+/** Build the backup engine over the single suite source. Tauri-only. */
 export async function buildExcelBackup(): Promise<ExcelBackup> {
-  const sources: BackupSource[] = [{ id: "app", db: await appDbAdapter() }];
-  try {
-    // FULL suite dump: every installed app's tables in suite.db (not just ours) — any
-    // app's export is the suite-wide data inventory + backup; suite sheets restore
-    // from any app's workbook.
-    const suite = await openSharedDbAdapter();
-    sources.push(suiteSourceFull(suite, await loadRegistry(suite)));
-  } catch (e) {
-    console.warn("excel backup: shared suite DB unavailable — backing up the app DB alone:", e);
-  }
+  // FULL suite dump: every installed app's tables in suite.db (not just ours) — any app's
+  // export is the suite-wide data inventory + backup; suite sheets restore from any app's
+  // workbook.
+  const suite = await openSharedDbAdapter();
+  const sources = [suiteSourceFull(suite, await loadRegistry(suite))];
   return createExcelBackup({ appId: APP_ID, sources });
 }
 

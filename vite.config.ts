@@ -32,6 +32,11 @@ export default defineConfig({
         // the entry/index chunk.
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
+          // Heavy, lazy-only libs FIRST so they get their OWN chunk and stay off first paint:
+          // the core backup module already does `await import("xlsx")`, but without this split a
+          // catch-all "vendor" chunk swallowed xlsx into the eager path. Now it loads only when
+          // a user exports an Excel backup from Settings.
+          if (/[\\/]node_modules[\\/]xlsx[\\/]/.test(id)) return "vendor-xlsx";
           if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id))
             return "vendor-react";
           if (/[\\/]node_modules[\\/]@tanstack[\\/]/.test(id)) return "vendor-query";

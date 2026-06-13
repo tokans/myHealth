@@ -8,9 +8,16 @@
  * (`verified: false`) so the human-in-the-loop, not the machine, is the authority
  * for safety-critical fields. No medical interpretation.
  */
-import { splitLines, stripLineMarker, stripFormPrefix } from "./normalize";
+import {
+  splitLines,
+  stripLineMarker,
+  stripFormPrefix,
+  tierByConfidence,
+  requiresConfirmation,
+  type ConfidenceTier,
+  type FieldSource,
+} from "@scandoc/core";
 import { matchDrug, parseStrength, normalizeFrequency, FREQUENCY_MAP } from "./formulary";
-import { tierByConfidence, requiresConfirmation, type ConfidenceTier, type FieldSource } from "./confidence";
 
 export interface DrugField {
   /** The original line as recognized. */
@@ -109,7 +116,8 @@ function extractLine(raw: string, source: FieldSource): DrugField | null {
     confidence,
     tier: tierByConfidence(confidence),
     source,
-    confirmRequired: requiresConfirmation("drug", source) || requiresConfirmation("dosage", source),
+    // Drug name and dosage are the safety-critical fields — confirm-required unless native text.
+    confirmRequired: requiresConfirmation(source, true),
     verified: false,
     candidates: match?.candidates ?? [],
   };

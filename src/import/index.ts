@@ -13,22 +13,33 @@
  */
 export { extractPrescription, type DrugField, type PrescriptionExtraction } from "./extractPrescription";
 export { extractLab, type LabField, type LabExtraction, type LabFlag } from "./extractLab";
+// The domain-agnostic reading engine now lives in @scandoc/core; re-export the pieces
+// myHealth's pages/tests consume so the `import/` surface is unchanged for callers.
 export {
   tierByConfidence,
   requiresConfirmation,
   AUTO_THRESHOLD,
   DISAMBIGUATE_THRESHOLD,
+  similarity,
+  levenshtein,
+  rankMatches,
+  collapseWhitespace,
+  splitLines,
+  normalizeToken,
+  digitsFromOcr,
+  parseOcrNumber,
+  stripLineMarker,
+  stripFormPrefix,
+  canonicalForm,
   type ConfidenceTier,
   type FieldSource,
-} from "./confidence";
+} from "@scandoc/core";
 export { matchDrug, parseStrength, normalizeFrequency, FORMULARY, type DrugMatch } from "./formulary";
 export { matchTest, LAB_TESTS, type TestMatch } from "./labVocab";
-export { similarity, levenshtein, rankMatches } from "./fuzzy";
-export * from "./normalize";
 
 import { extractPrescription, type PrescriptionExtraction } from "./extractPrescription";
 import { extractLab, type LabExtraction } from "./extractLab";
-import type { FieldSource } from "./confidence";
+import type { FieldSource } from "@scandoc/core";
 
 export type ParsedDocument =
   | ({ kind: "prescription" } & PrescriptionExtraction)

@@ -8,9 +8,8 @@
  * parsing. It records data; it never interprets it medically — the H/L flag is a
  * mechanical value-vs-range comparison, not advice.
  */
-import { collapseWhitespace, parseOcrNumber } from "./normalize";
+import { collapseWhitespace, parseOcrNumber, tierByConfidence, type ConfidenceTier, type FieldSource } from "@scandoc/core";
 import { matchTest } from "./labVocab";
-import { tierByConfidence, type ConfidenceTier, type FieldSource } from "./confidence";
 
 export type LabFlag = "H" | "L" | "normal";
 

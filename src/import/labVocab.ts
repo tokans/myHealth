@@ -5,8 +5,7 @@
  * usually printed on the report itself (we parse them), so the typical range here
  * is only a fallback hint, never authority. Representative starter set, not complete.
  */
-import { normalizeToken } from "./normalize";
-import { rankMatches, type RankedMatch } from "./fuzzy";
+import { normalizeToken, rankMatches, type RankedMatch } from "@scandoc/core";
 
 export interface LabTest {
   canonical: string;

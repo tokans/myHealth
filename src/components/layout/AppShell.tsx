@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HeartPulse, Bug, Settings as SettingsIcon } from "lucide-react";
+import { HeartPulse, Settings as SettingsIcon } from "lucide-react";
 import { SuiteShell, type SuiteNavItem, type SuiteAction } from "sharedcorelib/ui";
 import { cn } from "@/lib/utils";
 import { NAV, type NavItem } from "@/lib/nav";
@@ -53,10 +53,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     (it) => it.primary && it.to !== "/" && navState(it, flags) === "open",
   ).map((it) => ({ key: it.to, label: it.label, icon: it.icon, to: it.to }));
 
-  // Suite-standard secondary actions (More drawer + desktop sidebar footer).
+  // Report an issue is suite-standard chrome rendered by SuiteShell itself (`onReportIssue`);
+  // only app-specific actions are listed here.
   const actions: SuiteAction[] = [
     { key: "settings", label: "Settings", icon: SettingsIcon, to: "/settings" },
-    { key: "report", label: "Report an issue", icon: Bug, onSelect: () => setReportOpen(true) },
   ];
 
   return (
@@ -70,6 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
         nav={nav}
         centralActions={centralActions}
+        onReportIssue={() => setReportOpen(true)}
         actions={actions}
         sidebarTop={<div className="px-3 pt-1"><TierBadge /></div>}
         moreHeader={<TierBadge />}

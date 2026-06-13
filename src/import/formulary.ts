@@ -8,8 +8,7 @@
  * shipped pipeline would load a licensed India formulary (open question in the doc).
  * Pure data + pure helpers — no DB, no models.
  */
-import { normalizeToken, digitsFromOcr } from "./normalize";
-import { rankMatches, type RankedMatch } from "./fuzzy";
+import { normalizeToken, digitsFromOcr, rankMatches, type RankedMatch } from "@scandoc/core";
 
 export interface DrugEntry {
   /** Canonical generic name (INN). */

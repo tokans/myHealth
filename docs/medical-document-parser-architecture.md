@@ -100,6 +100,17 @@ flowchart TD
 
 ## 6. Stage-by-stage design
 
+> **Implementation note (suite-shared).** The **domain-agnostic** parts of the
+> post-recognition pipeline — text normalization (§6.2 cleanup helpers), fuzzy
+> vocabulary matching (§6.6), and confidence tiering (§6.7) — are implemented once in
+> the shared **`@scandoc/core`** package (`sharedCoreLib/scandoc-lib`), reused by every
+> myLife document-reading app (myHealth, myDocs). The **medical domain** parts (the drug
+> formulary, LOINC vocabulary, `extractPrescription`/`extractLab`) stay in
+> `myHealth/src/import/`. The boundary between capture/recognition (§6.1–6.5) and the
+> text engine is the `@scandoc/core` **`Recognizer`** interface — the native-text fast
+> path and the future OCR sidecar both implement it; today only the offline
+> `nativeTextRecognizer` ships.
+
 ### 6.1 Capture & quality gating
 - Applies when the input is a live phone capture (and as a sanity check on uploads).
 - Immediately after capture, run a fast check: is a document boundary detectable? Is it in focus? Is there glare over text regions? Is resolution sufficient?

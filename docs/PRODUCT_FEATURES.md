@@ -64,11 +64,12 @@ The analog of myFinance's goals + ETA projection.
 - **Reference-range flagging is deterministic** — a value outside a baked/standard range is flagged H/L with a "not medical advice; discuss with your doctor" note. No interpretation beyond the range comparison.
 - Charts per metric; multi-metric overlay; export.
 
-### 4.D Document import — prescriptions & lab reports *(core, the differentiator)*
-This is the health analog of myFinance's Excel pipeline, and it is specified in full by [`medical-document-parser-architecture.md`](./medical-document-parser-architecture.md). Summary of how it appears as a product feature:
+### 4.D Document import — prescriptions, lab reports & insurance cards *(core, the differentiator)*
+This is the health analog of myFinance's Excel pipeline, and it is specified in full by [`medical-document-parser-architecture.md`](./medical-document-parser-architecture.md). **Import is not a separate page — it is the Documents vault** (Caretaker tier): adding/scanning a document *is* importing it, so there is one feature, not two. Summary of how it appears as a product feature:
 
-- **Inputs:** native-text PDF, scanned PDF, phone photo. A **capture quality gate** asks for a retake on glare/blur before wasting effort.
-- **Two document types:** **pathology/lab reports** (tractable — table extraction + test-name normalization → metrics) and **prescriptions** (printed → tractable; handwritten → routed to assisted human entry).
+- **Inputs:** native-text PDF, scanned PDF, phone photo. A **capture quality gate** asks for a retake on glare/blur before wasting effort. (Recognition runs through the `@scandoc/core` `Recognizer` seam; until the on-device OCR sidecar ships, text input is pasted/edited for image/PDF scans.)
+- **Three document types:** **pathology/lab reports** (tractable — table extraction + test-name normalization → metrics), **prescriptions** (printed → tractable; handwritten → routed to assisted human entry), and **medical insurance cards** (policy fields + covered members).
+- **Insurance-card member add:** scanning an insurance card extracts the **covered members**; any member not yet in the app is **proposed for adding to the family** in a propose-then-confirm review (editable name/relationship/DOB; the card's "self" maps to the existing self profile). Confirmed members are created as profiles — so a scan fills in missing family members. Creating a person is always confirm-required.
 - **Confidence-tiered review UI:** high → auto-accept; medium → pick from ranked *real* candidates (drugs from a formulary, tests from a standard vocabulary) + free-text "Other"; low/handwritten → manual entry, dictionary-assisted.
 - **Safety gating:** drug name and dosage are **confirm-required** when not from native text. The system never silently fills a dose.
 - **Output → app data:** an imported lab report populates metrics & lab history; an imported prescription populates a medication list + a document record. Every field carries **provenance** (native-text / OCR / human) and **confidence**.
@@ -142,7 +143,7 @@ The ladder is **app-defined config** passed to the shared tier engine (ordered t
 | Tier | Unlock signal (example, tunable) | What it reveals |
 |---|---|---|
 | **🌱 Starter** (default) | — everyone starts here | Your own profile · the **Today** view (daily tasks + **water intake**) · one-tap vitals logging · add a document (native-text/simple path) |
-| **📈 Tracker** | finished your profile **and** logged data on **≥5 distinct days** (or ≥3 days + set 1 goal) | Family-member profiles · **health goals + projections** · trends/charts · medications + dose/refill reminders · the **daily/weekly schedule** · reminders center |
+| **📈 Tracker** | finished your profile **and** logged data on **≥5 distinct days** (or ≥3 days + set 1 goal) | Family-member profiles · **health goals + projections** · trends/charts · **guided yoga sequences** (§4.O) · medications + dose/refill reminders · the **daily/weekly schedule** · reminders center |
 | **🧭 Caretaker** | **≥2 profiles** · active on ≥8 days across ≥1 month · used import at least once | Full import wizard (scans/photos/handwriting) + lab-trend dashboard · immunizations + screening planner · medical ICE card · symptom journal · appointments · doctor-visit summary · **professionals directory eligible** (still double-gated on published data) |
 | **🏆 Champion** | **≥20 active days** · every core feature used once · ≥2 profiles with goals | Device-to-device sync · encrypted family health pack / register export · chronic-condition care plans · **health-items catalog eligible** (double-gated) + items-powered diaries · full timeline + advanced analytics |
 
@@ -180,6 +181,12 @@ The friendly front door that makes the app a daily habit and drives the usage si
 - **Daily / weekly schedule** *(Tracker)* — a planned day/week laying out medication times, meals, activity blocks, and appointments on a timeline, generating the right reminders. At **Starter** this is **Hidden** (newcomers see a calm, water-first app); it appears and fully opens at **Tracker**. Per-profile, so a caregiver can run a parent's or child's schedule too.
 
 All of the above are **deterministic and offline**; reminders are local OS notifications with a graceful no-op when permission isn't granted. No coaching language implying medical advice.
+
+### 4.O Yoga — guided sequences *(Tracker)*
+A library of **guided yoga sequences**, each an ordered list of **steps with a pose illustration, plain-language instruction, and an optional hold time**. Opens at the **Tracker** tier (nudged one tier below, hidden further down — §4.J). The app **ships a few baked samples** (Morning Wake-Up Flow, Desk Relief Stretch, Balance Basics) with inline-SVG pose art so the page is useful **fully offline** the moment the tier unlocks.
+
+- **Downloadable sequence bundles** — richer packs are published **separately** as **signed, encrypted bundles on the project's GitHub release** and pulled on demand via the shared **masters/OTA** engine (§5 table; Ed25519 signature → revision/app-version gate → per-file SHA-256 → AES-GCM transport-decrypt → schema-validate). **Receive-only** (uploads nothing); downloaded bundles merge on top of the baked samples (baked wins id collisions) and can be removed. Bundles are **double-gated** in practice: the page is Tracker-gated, and downloads only run when the build carries the signing keys and is running in the desktop app — otherwise the baked samples still work.
+- **Not medical advice.** This is general movement guidance with an on-screen disclaimer (move gently, stop if it hurts, check with your doctor for injuries/conditions). No diagnosis, no physiotherapy prescription, no LLM — consistent with the no-medical-interpretation constraint.
 
 ---
 

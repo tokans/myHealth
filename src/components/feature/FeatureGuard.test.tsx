@@ -73,8 +73,8 @@ describe("FeatureGuard", () => {
 
 describe("LockedFeature", () => {
   it("shows the gate copy and a CTA link to ctaTo", () => {
-    renderInRouter(<LockedFeature gateKey="import" />);
-    const gate = GATES.import;
+    renderInRouter(<LockedFeature gateKey="sync" />);
+    const gate = GATES.sync;
     expect(screen.getByText(gate.lockedTitle)).toBeInTheDocument();
     expect(screen.getByText(gate.unlockHint)).toBeInTheDocument();
     const link = screen.getByRole("link", { name: gate.ctaLabel });

@@ -17,13 +17,21 @@ describe("NAV config", () => {
 
   it("the always-open Starter surfaces are ungated", () => {
     const open = NAV.filter((n) => !n.gate).map((n) => n.to);
-    expect(open).toEqual(expect.arrayContaining(["/", "/profiles", "/metrics", "/reminders", "/journey"]));
+    expect(open).toEqual(expect.arrayContaining(["/", "/profiles", "/metrics", "/reminders"]));
   });
 
-  it("exposes Today and Vitals as primary (mobile bottom-bar) tabs", () => {
+  it("exposes Today as the primary (mobile bottom-bar home) tab", () => {
     const primaries = NAV.filter((n) => n.primary).map((n) => n.to);
     expect(primaries).toContain("/");
-    expect(primaries).toContain("/metrics");
+    // Vitals is reached per-profile now, not as a central mobile tab.
+    expect(primaries).not.toContain("/metrics");
+  });
+
+  it("groups Reminders, Goals and Schedule under the mobile center (heart) button", () => {
+    const central = NAV.filter((n) => n.central).map((n) => n.to);
+    expect(central).toEqual(["/reminders", "/goals", "/schedule"]);
+    // Vitals is no longer a center action.
+    expect(central).not.toContain("/metrics");
   });
 
   it("every item carries a label and an icon", () => {

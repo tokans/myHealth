@@ -13,6 +13,17 @@
  */
 export { extractPrescription, type DrugField, type PrescriptionExtraction } from "./extractPrescription";
 export { extractLab, type LabField, type LabExtraction, type LabFlag } from "./extractLab";
+export {
+  extractInsurance,
+  normalizeDate,
+  type InsuranceExtraction,
+  type InsurancePolicy,
+  type MemberField,
+  type InsuranceRelationship,
+} from "./extractInsurance";
+export { matchInsurer, INSURERS, type Insurer, type InsurerMatch } from "./insurerVocab";
+export { recognizeDocument, captureKindForMime, type Capture } from "./capture";
+export { reconcileMembers, type MemberProposal } from "./memberReconcile";
 // The domain-agnostic reading engine now lives in @scandoc/core; re-export the pieces
 // myHealth's pages/tests consume so the `import/` surface is unchanged for callers.
 export {
@@ -39,23 +50,33 @@ export { matchTest, LAB_TESTS, type TestMatch } from "./labVocab";
 
 import { extractPrescription, type PrescriptionExtraction } from "./extractPrescription";
 import { extractLab, type LabExtraction } from "./extractLab";
+import { extractInsurance, type InsuranceExtraction } from "./extractInsurance";
 import type { FieldSource } from "@scandoc/core";
+
+/** Document kinds the field extractor can structure. */
+export type ParseKind = "prescription" | "lab_report" | "insurance";
 
 export type ParsedDocument =
   | ({ kind: "prescription" } & PrescriptionExtraction)
-  | ({ kind: "lab_report" } & LabExtraction);
+  | ({ kind: "lab_report" } & LabExtraction)
+  | ({ kind: "insurance" } & InsuranceExtraction);
 
 /**
  * Route recognized text to the right extractor by document type. A thin
- * convenience over the two extractors so callers (the future review UI) have one
- * entry point keyed off the user-chosen document type.
+ * convenience over the extractors so callers (the review UI) have one entry point
+ * keyed off the user-chosen document type.
  */
 export function parseDocument(
-  kind: "prescription" | "lab_report",
+  kind: ParseKind,
   text: string,
   opts: { source?: FieldSource } = {},
 ): ParsedDocument {
-  return kind === "prescription"
-    ? { kind, ...extractPrescription(text, opts) }
-    : { kind, ...extractLab(text, opts) };
+  switch (kind) {
+    case "prescription":
+      return { kind, ...extractPrescription(text, opts) };
+    case "lab_report":
+      return { kind, ...extractLab(text, opts) };
+    case "insurance":
+      return { kind, ...extractInsurance(text, opts) };
+  }
 }

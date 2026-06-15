@@ -3,28 +3,26 @@ import { HeartPulse, Settings as SettingsIcon } from "lucide-react";
 import { SuiteShell, type SuiteNavItem, type SuiteAction } from "sharedcorelib/ui";
 import { cn } from "@/lib/utils";
 import { NAV, type NavItem } from "@/lib/nav";
-import { GATES } from "@/lib/featureGate";
+import { GATES, gateVisibility } from "@/lib/featureGate";
 import { openExternal } from "@/lib/openExternal";
 import { ReportIssueDialog } from "@/components/feedback/ReportIssueDialog";
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
 import { useGatingStore } from "@/stores/gating.store";
 import { useTierStore, selectTier } from "@/stores/tier.store";
 
-/** Visibility decision for a nav item given the live gating flags. */
+/** Visibility decision for a nav item given the live gating flags (one tier ahead nudges). */
 function navState(item: NavItem, flags: ReturnType<typeof useGatingStore.getState>) {
   if (!item.gate) return "open" as const;
-  const gate = GATES[item.gate];
-  if (gate.isUnlocked(flags)) return "open" as const;
-  return gate.lockBehavior === "nudge" ? ("nudge" as const) : ("hidden" as const);
+  return gateVisibility(item.gate, flags);
 }
 
-/** The engagement-tier badge, shown in the desktop sidebar top and the mobile More header. */
+/** The engagement-tier badge, shown next to the profile avatar in the top bar. */
 function TierBadge() {
   const tier = useTierStore(selectTier);
   const Icon = tier.icon;
   return (
-    <div className="flex items-center gap-2 rounded-md bg-accent/40 px-3 py-2 text-sm">
-      <Icon className={cn("h-4 w-4", tier.className)} />
+    <div className="flex items-center gap-1.5 rounded-full bg-accent/40 px-2.5 py-1 text-xs">
+      <Icon className={cn("h-3.5 w-3.5", tier.className)} />
       <span className="font-medium">{tier.label}</span>
     </div>
   );
@@ -47,10 +45,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       lockHint: state === "nudge" ? GATES[it.gate!].unlockHint : undefined,
     }));
 
-  // Mobile center button = the non-home primary destinations (here: Vitals). One action → a plain
-  // center button; the shell auto-upgrades to a FAB + bottom sheet if more are added later.
+  // Mobile center button = the raised heart FAB → a bottom sheet of the `central` destinations
+  // (Reminders / Goals / Schedule). Gated items appear only once unlocked ("open"); while locked
+  // they stay in "More" as a nudge. The shell renders 1 action as a plain button and 2+ as the FAB.
   const centralActions: SuiteAction[] = NAV.filter(
-    (it) => it.primary && it.to !== "/" && navState(it, flags) === "open",
+    (it) => it.central && navState(it, flags) === "open",
   ).map((it) => ({ key: it.to, label: it.label, icon: it.icon, to: it.to }));
 
   // Report an issue is suite-standard chrome rendered by SuiteShell itself (`onReportIssue`);
@@ -70,11 +69,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
         nav={nav}
         centralActions={centralActions}
+        centralLabel="Health"
+        centralIcon={HeartPulse}
         onReportIssue={() => setReportOpen(true)}
         actions={actions}
-        sidebarTop={<div className="px-3 pt-1"><TierBadge /></div>}
-        moreHeader={<TierBadge />}
-        profile={<ProfileMenu onReport={() => setReportOpen(true)} />}
+        profile={
+          <div className="flex items-center gap-2">
+            <TierBadge />
+            <ProfileMenu onReport={() => setReportOpen(true)} />
+          </div>
+        }
         onExternal={(href) => void openExternal(href)}
         contentClassName="mx-auto max-w-3xl"
       >

@@ -5,6 +5,7 @@
  */
 import { create } from "zustand";
 import { isTauri } from "@/lib/environment";
+import { tierOverride, ctxForTier } from "@/lib/tierOverride";
 import { countDistinctLaunchDays } from "@/db/usage";
 import { countProfiles } from "@/db/profiles";
 import { countGoals } from "@/db/goals";
@@ -27,6 +28,12 @@ export const useTierStore = create<TierState>((set) => ({
   ctx: EMPTY_TIER_CONTEXT,
   loaded: false,
   refresh: async () => {
+    // Dev/QA: a tier override wins over real signals, in every environment.
+    const override = tierOverride();
+    if (override) {
+      set({ ctx: ctxForTier(override), loaded: true });
+      return;
+    }
     if (!isTauri()) {
       // Browser/dev preview: show the top tier so nothing is hidden in preview.
       set({

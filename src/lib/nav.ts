@@ -6,10 +6,10 @@ import {
   Target,
   CalendarDays,
   LineChart,
+  Flower2,
   Pill,
   HeartPulse,
   FolderLock,
-  FileUp,
   Stethoscope,
   Compass,
   type LucideIcon,
@@ -28,6 +28,13 @@ export interface NavItem {
    * full list regardless. Profiles is reached via the top-right profile drawer.
    */
   primary?: boolean;
+  /**
+   * Group under the mobile center button — the raised heart FAB that opens a bottom
+   * sheet listing these destinations (Reminders / Goals / Schedule). Gated items only
+   * appear here once unlocked; while locked they stay in "More" as a nudge. Desktop
+   * shows them inline in the sidebar regardless.
+   */
+  central?: boolean;
 }
 
 /**
@@ -38,15 +45,15 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { to: "/", label: "Today", icon: Home, primary: true },
   { to: "/profiles", label: "Profiles", icon: Users },
-  { to: "/metrics", label: "Vitals", icon: Activity, primary: true },
-  { to: "/reminders", label: "Reminders", icon: Bell },
-  { to: "/goals", label: "Goals", icon: Target, gate: "goals" },
-  { to: "/schedule", label: "Schedule", icon: CalendarDays, gate: "schedule" },
+  { to: "/metrics", label: "Vitals", icon: Activity },
+  { to: "/reminders", label: "Reminders", icon: Bell, central: true },
+  { to: "/goals", label: "Goals", icon: Target, gate: "goals", central: true },
+  { to: "/schedule", label: "Schedule", icon: CalendarDays, gate: "schedule", central: true },
   { to: "/trends", label: "Trends", icon: LineChart, gate: "trends" },
+  { to: "/yoga", label: "Yoga", icon: Flower2, gate: "yoga" },
   { to: "/medications", label: "Medications", icon: Pill, gate: "medications" },
   { to: "/documents", label: "Documents", icon: FolderLock, gate: "documents" },
   { to: "/ice", label: "Medical card", icon: HeartPulse, gate: "ice" },
-  { to: "/import", label: "Import", icon: FileUp, gate: "import" },
   { to: "/directory", label: "Find a Pro", icon: Stethoscope, gate: "directory" },
   { to: "/journey", label: "Your journey", icon: Compass },
 ];

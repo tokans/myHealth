@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { UserPlus, User, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { UserPlus, User, Trash2, Activity } from "lucide-react";
 import { getCommonBaked } from "sharedcorelib/masters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,19 @@ import { useProfileStore } from "@/stores/profile.store";
 const RELATIONSHIPS = getCommonBaked("relationship"); // common master, reused (no recreate)
 
 export default function Profiles() {
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [show, setShow] = useState(false);
   const refreshTier = useTierStore((s) => s.refresh);
   const refreshGating = useGatingStore((s) => s.refresh);
   const refreshProfiles = useProfileStore((s) => s.refresh);
+  const setActiveProfile = useProfileStore((s) => s.setActive);
+
+  /** Make this person the active profile and jump to their Vitals (per-person logging). */
+  function openVitals(id: number) {
+    setActiveProfile(id);
+    navigate("/metrics");
+  }
 
   async function load() {
     if (!isTauri()) return;
@@ -32,7 +41,7 @@ export default function Profiles() {
   const hasSelf = profiles.some((p) => p.is_self);
 
   async function onCreate(form: NewProfileForm) {
-    await createProfile({
+    const id = await createProfile({
       name: form.name,
       is_self: form.isSelf ? 1 : 0,
       relationship: form.isSelf ? null : form.relationship || null,
@@ -41,6 +50,8 @@ export default function Profiles() {
       blood_group: form.bloodGroup || undefined,
       height_cm: form.heightCm ? Number(form.heightCm) : undefined,
     });
+    // The new person becomes active so logging their first vitals is one tap away.
+    if (id) setActiveProfile(id);
     setShow(false);
     await load();
     await Promise.all([refreshTier(), refreshGating()]);
@@ -86,11 +97,16 @@ export default function Profiles() {
                   </div>
                 </div>
               </div>
-              {!p.is_self && (
-                <Button size="icon" variant="ghost" onClick={() => onDelete(p.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => openVitals(p.id)}>
+                  <Activity className="h-4 w-4" /> Vitals
                 </Button>
-              )}
+                {!p.is_self && (
+                  <Button size="icon" variant="ghost" onClick={() => onDelete(p.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}

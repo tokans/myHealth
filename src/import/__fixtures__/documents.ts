@@ -81,3 +81,47 @@ export const LAB_NO_RANGE = `
 TSH 3.4 uIU/mL
 Vitamin D 18 ng/mL
 `.trim();
+
+// ── Medical insurance cards ──────────────────────────────────────────────────────
+
+/** Clean, printed card with a labeled members section. */
+export const INSURANCE_CLEAN = `
+STAR HEALTH & ALLIED INSURANCE
+Family Health Optima — Floater
+Policy No: P/161000/01/2026/001234
+Group No: GRP-5567
+Valid From: 01/04/2026   Valid Upto: 31/03/2027
+
+Members Covered:
+1. Rajesh Kumar (Self) DOB 12/05/1980 ID: 1234501
+2. Sunita Kumar (Spouse) DOB 03/08/1983 ID: 1234502
+3. Aarav Kumar (Son) DOB 21/11/2012 ID: 1234503
+
+For cashless, call the 24x7 helpline.
+`.trim();
+
+/** Phone-photo OCR: character confusions in ids/dates + odd separators. */
+export const INSURANCE_OCR_NOISY = `
+Niva Bupa Health Insurance
+ReAssure 2.0
+Policy Number : NB-2O26-OOl234
+Valid up to: 3l/O3/2O27
+
+Insured Members
+- Priya Sharma  PRIMARY  D.O.B 15/O7/1979  UHID PS001
+- Anil Sharma   SPOUSE   DOB l8/02/1976    UHID AS002
+- Riya Sharma   DAUGHTER 09/12/2O1O        UHID RS003
+
+Underwritten by: Niva Bupa Health Insurance Company Ltd
+`.trim();
+
+/** A card listing a member already in the family plus a new one (reconcile path). */
+export const INSURANCE_MIXED = `
+HDFC ERGO Health Insurance
+Optima Restore
+Policy No HE2026778899
+
+Members:
+Asha D (Self) 04/06/1985 ID OPT01
+Vikram D (Spouse) 22/09/1982 ID OPT02
+`.trim();

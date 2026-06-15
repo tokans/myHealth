@@ -1,0 +1,58 @@
+{
+  "bundleId": "restorative",
+  "name": "Restorative & Relaxation",
+  "description": "Slow, supported sequences to wind down and release tension.",
+  "version": 1,
+  "sequences": [
+    {
+      "id": "restorative-evening-unwind",
+      "name": "Evening Unwind",
+      "sanskrit": "",
+      "level": "beginner",
+      "focus": "Relaxation",
+      "summary": "A calming pre-sleep flow of gentle forward folds and rest.",
+      "steps": [
+        {
+          "title": "Seated Forward Fold",
+          "instruction": "Sit with legs extended, hinge from the hips, and reach toward your feet. Keep the spine long.",
+          "durationSec": 45,
+          "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20100%22%3E%3Cline%20x1%3D%226%22%20y1%3D%2292%22%20x2%3D%22114%22%20y2%3D%2292%22%20stroke%3D%22%2399a%22%20stroke-width%3D%222%22%2F%3E%3Ccircle%20cx%3D%2284%22%20cy%3D%2256%22%20r%3D%227%22%20fill%3D%22none%22%20stroke%3D%22%23337%22%20stroke-width%3D%223%22%2F%3E%3Cpath%20d%3D%22M84%2063%20Q70%2070%2040%2080%20L24%2082%20M40%2080%20L40%2092%20M84%2070%20L96%2080%22%20fill%3D%22none%22%20stroke%3D%22%23337%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E"
+        },
+        {
+          "title": "Reclined Twist",
+          "instruction": "Lie on your back, draw one knee across your body, and let it rest. Gaze the opposite way. Switch sides.",
+          "durationSec": 40
+        },
+        {
+          "title": "Legs-Up Rest",
+          "instruction": "Rest your legs up against a wall or sofa, arms relaxed, and breathe slowly.",
+          "durationSec": 90
+        }
+      ]
+    },
+    {
+      "id": "restorative-back-release",
+      "name": "Lower-Back Release",
+      "level": "beginner",
+      "focus": "Relaxation",
+      "summary": "Knee hugs and gentle rocking to ease a tight lower back.",
+      "steps": [
+        {
+          "title": "Knees to Chest",
+          "instruction": "On your back, hug both knees in and gently rock side to side.",
+          "durationSec": 40
+        },
+        {
+          "title": "Supported Bridge",
+          "instruction": "Lift the hips and slide a cushion under them; rest your weight onto it.",
+          "durationSec": 60
+        },
+        {
+          "title": "Corpse Pose",
+          "instruction": "Release everything and lie flat for a few slow breaths to finish.",
+          "durationSec": 60
+        }
+      ]
+    }
+  ]
+}

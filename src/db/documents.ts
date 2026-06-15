@@ -43,10 +43,12 @@ export async function addDocument(d: {
   file_name: string;
   mime?: string;
   size_bytes?: number;
+  /** Recognized/extracted text kept for search (never the blob bytes). */
+  extracted_text?: string | null;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO documents (profile_id, doc_type, title, provider, doc_date, file_name, mime, size_bytes)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+    `INSERT INTO documents (profile_id, doc_type, title, provider, doc_date, file_name, mime, size_bytes, extracted_text)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`,
     [
       d.profile_id ?? null,
       d.doc_type,
@@ -56,6 +58,7 @@ export async function addDocument(d: {
       d.file_name,
       d.mime ?? null,
       d.size_bytes ?? null,
+      d.extracted_text ?? null,
     ],
   );
   return res.lastInsertId ?? 0;

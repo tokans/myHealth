@@ -48,7 +48,7 @@ describe("addDocument", () => {
     expect(id).toBe(7);
     const [sql, params] = mockExecute.mock.calls[0];
     expect(sql).toContain("INSERT INTO documents");
-    expect(params).toEqual([null, "bill", "T", null, null, "f", null, null]);
+    expect(params).toEqual([null, "bill", "T", null, null, "f", null, null, null]);
   });
 
   it("passes through all provided fields", async () => {
@@ -65,7 +65,7 @@ describe("addDocument", () => {
     });
     expect(id).toBe(12);
     const [, params] = mockExecute.mock.calls[0];
-    expect(params).toEqual([4, "lab_report", "CBC", "Acme Lab", "2026-01-02", "cbc.pdf", "application/pdf", 1024]);
+    expect(params).toEqual([4, "lab_report", "CBC", "Acme Lab", "2026-01-02", "cbc.pdf", "application/pdf", 1024, null]);
   });
 
   it("returns 0 when lastInsertId is undefined", async () => {

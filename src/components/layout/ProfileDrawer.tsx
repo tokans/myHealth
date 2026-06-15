@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, User, UserPlus, Bug } from "lucide-react";
+import { Check, User, UserPlus, Bug, Compass } from "lucide-react";
 import { SupportedByTokans } from "sharedcorelib/ui";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,11 @@ export function ProfileDrawer({
   function goAdd() {
     onOpenChange(false);
     navigate("/profiles");
+  }
+
+  function goJourney() {
+    onOpenChange(false);
+    navigate("/journey");
   }
 
   return (
@@ -93,8 +98,16 @@ export function ProfileDrawer({
           </button>
         </div>
 
-        {/* Secondary actions: support + publisher attribution (shared core). */}
+        {/* Secondary actions: your journey + support + publisher attribution (shared core). */}
         <div className="mt-auto flex flex-col gap-1 border-t p-2">
+          <button
+            type="button"
+            onClick={goJourney}
+            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Compass className="h-4 w-4" />
+            Your journey
+          </button>
           <SheetClose asChild>
             <button
               type="button"

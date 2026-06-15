@@ -6,6 +6,7 @@ import { isTauri } from "@/lib/environment";
 import { recordLaunch } from "@/db/usage";
 import { initSharedDb } from "@/db/sharedDb";
 import { runHabitReminderSweep } from "@/lib/reminderSweep";
+import { maybeSeedDev } from "@/dev/seed";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
 import { useSettingsStore } from "@/stores/settings.store";
@@ -22,6 +23,8 @@ const Schedule = lazy(() => import("@/pages/Schedule"));
 const Medications = lazy(() => import("@/pages/Medications"));
 const Documents = lazy(() => import("@/pages/Documents"));
 const Ice = lazy(() => import("@/pages/Ice"));
+const Trends = lazy(() => import("@/pages/Trends"));
+const Yoga = lazy(() => import("@/pages/Yoga"));
 const Journey = lazy(() => import("@/pages/Journey"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Placeholder = lazy(() =>
@@ -46,6 +49,12 @@ export default function App() {
         }
         // Register schemas + ensure the shared common ICE card table (best-effort).
         void initSharedDb();
+        // Dev/QA only: populate dummy data when ?seed=… / VITE_SEED is set (no-op otherwise).
+        try {
+          await maybeSeedDev();
+        } catch (e) {
+          console.error("maybeSeedDev failed:", e);
+        }
       }
       await Promise.all([hydrateSettings(), refreshTier(), refreshGating(), refreshProfiles()]);
 
@@ -75,26 +84,10 @@ export default function App() {
             <Route path="/medications" element={<Medications />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/ice" element={<Ice />} />
-            <Route
-              path="/trends"
-              element={
-                <Placeholder
-                  gateKey="trends"
-                  title="Trends"
-                  description="See any metric or lab value charted across time with reference-range bands."
-                />
-              }
-            />
-            <Route
-              path="/import"
-              element={
-                <Placeholder
-                  gateKey="import"
-                  title="Import documents"
-                  description="Import prescriptions and lab reports with a confidence-tiered, human-in-the-loop review."
-                />
-              }
-            />
+            <Route path="/trends" element={<Trends />} />
+            <Route path="/yoga" element={<Yoga />} />
+            {/* Import is now part of Documents (scan & extract on add) — redirect old links. */}
+            <Route path="/import" element={<Navigate to="/documents" replace />} />
             <Route
               path="/directory"
               element={

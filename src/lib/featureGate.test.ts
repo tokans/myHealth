@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GATES, type GatingFlags, type GateKey } from "./featureGate";
+import { GATES, gateVisibility, type GatingFlags, type GateKey } from "./featureGate";
 
 const LOCKED: GatingFlags = {
   hasProfile: false,
@@ -12,10 +12,16 @@ const LOCKED: GatingFlags = {
 const flags = (over: Partial<GatingFlags> = {}): GatingFlags => ({ ...LOCKED, ...over });
 
 describe("GATES config invariants", () => {
-  it("every gate's key matches its record key and has valid lockBehavior + CTA copy", () => {
+  it("every gate's key matches its record key, carries valid tier/lock metadata + CTA copy", () => {
     for (const [key, gate] of Object.entries(GATES)) {
       expect(gate.key).toBe(key);
-      expect(["nudge", "hide"]).toContain(gate.lockBehavior);
+      // A gate is either tier-gated OR a prerequisite gate with a static lockBehavior.
+      if (gate.tier) {
+        expect(["tracker", "caretaker", "champion"]).toContain(gate.tier);
+        expect(gate.lockBehavior).toBeUndefined();
+      } else {
+        expect(["nudge", "hide"]).toContain(gate.lockBehavior);
+      }
       expect(gate.lockedTitle).toBeTruthy();
       expect(gate.unlockHint).toBeTruthy();
       expect(gate.ctaLabel).toBeTruthy();
@@ -27,7 +33,7 @@ describe("GATES config invariants", () => {
 
 describe("gate unlock predicates", () => {
   it("Tracker-tier features open at Tracker", () => {
-    const trackerGates: GateKey[] = ["goals", "schedule", "trends", "medications", "documents"];
+    const trackerGates: GateKey[] = ["goals", "schedule", "trends", "yoga"];
     for (const k of trackerGates) {
       expect(GATES[k].isUnlocked(LOCKED)).toBe(false);
       expect(GATES[k].isUnlocked(flags({ isTracker: true }))).toBe(true);
@@ -35,14 +41,14 @@ describe("gate unlock predicates", () => {
   });
 
   it("Caretaker-tier features open at Caretaker", () => {
-    for (const k of ["ice", "import", "directory"] as GateKey[]) {
+    for (const k of ["medications", "documents", "ice"] as GateKey[]) {
       expect(GATES[k].isUnlocked(flags({ isTracker: true }))).toBe(false);
       expect(GATES[k].isUnlocked(flags({ isCaretaker: true }))).toBe(true);
     }
   });
 
   it("Champion-tier features open at Champion", () => {
-    for (const k of ["sync", "items"] as GateKey[]) {
+    for (const k of ["directory", "sync", "items"] as GateKey[]) {
       expect(GATES[k].isUnlocked(flags({ isCaretaker: true }))).toBe(false);
       expect(GATES[k].isUnlocked(flags({ isChampion: true }))).toBe(true);
     }
@@ -53,9 +59,40 @@ describe("gate unlock predicates", () => {
     expect(GATES.family.isUnlocked(flags({ hasProfile: true }))).toBe(true);
     expect(GATES.family.lockBehavior).toBe("nudge");
   });
+});
 
-  it("import is teased to newcomers (nudge), unlike the hidden Tracker features", () => {
-    expect(GATES.import.lockBehavior).toBe("nudge");
-    expect(GATES.goals.lockBehavior).toBe("hide");
+describe("gateVisibility — reveal exactly one tier ahead", () => {
+  const TRACKER: GateKey[] = ["goals", "schedule", "trends", "yoga"];
+  const CARETAKER: GateKey[] = ["medications", "documents", "ice"];
+  const CHAMPION: GateKey[] = ["directory", "sync", "items"];
+
+  it("a Starter sees Tracker features locked (nudge) but NOTHING of Caretaker/Champion", () => {
+    const f = LOCKED; // Starter
+    for (const k of TRACKER) expect(gateVisibility(k, f)).toBe("nudge");
+    for (const k of CARETAKER) expect(gateVisibility(k, f)).toBe("hidden");
+    for (const k of CHAMPION) expect(gateVisibility(k, f)).toBe("hidden");
+  });
+
+  it("a Tracker sees Tracker open, Caretaker locked (nudge), Champion hidden", () => {
+    const f = flags({ isTracker: true });
+    for (const k of TRACKER) expect(gateVisibility(k, f)).toBe("open");
+    for (const k of CARETAKER) expect(gateVisibility(k, f)).toBe("nudge");
+    for (const k of CHAMPION) expect(gateVisibility(k, f)).toBe("hidden");
+  });
+
+  it("a Caretaker sees Caretaker open and Champion locked (nudge)", () => {
+    const f = flags({ isTracker: true, isCaretaker: true });
+    for (const k of CARETAKER) expect(gateVisibility(k, f)).toBe("open");
+    for (const k of CHAMPION) expect(gateVisibility(k, f)).toBe("nudge");
+  });
+
+  it("a Champion sees the top-tier features open", () => {
+    const f = flags({ isTracker: true, isCaretaker: true, isChampion: true });
+    for (const k of CHAMPION) expect(gateVisibility(k, f)).toBe("open");
+  });
+
+  it("prerequisite gates (family) follow their static lockBehavior", () => {
+    expect(gateVisibility("family", LOCKED)).toBe("nudge");
+    expect(gateVisibility("family", flags({ hasProfile: true }))).toBe("open");
   });
 });

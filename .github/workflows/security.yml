@@ -1,0 +1,51 @@
+# Suite security gate — runs the sharedcorelib publisher checks on every push/PR.
+# Originally scaffolded into the app by `publisher-ci init`, then adapted for this
+# monorepo: `sharedcorelib-publisher-ci` (and `sharedcorelib`) are consumed via
+# `file:../` sibling paths, NOT the npm registry. So before `npm ci` can install
+# them — and before `npx sharedcorelib-publisher-ci` can find the binary in
+# node_modules/.bin instead of trying (and failing) to fetch it from the registry —
+# the sibling repos must be laid out next to the app, exactly like release.yml's
+# build job does. PUBLISH_TOKEN (classic PAT) authenticates the cross-repo checkouts.
+name: security
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  sharedcorelib-security:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: myHealth
+    steps:
+      - name: Check out myHealth (source)
+        uses: actions/checkout@v4
+        with:
+          path: myHealth
+      # `sharedcorelib-publisher-ci` lives at sharedCoreLib/publisher-ci, so checking
+      # out sharedCoreLib brings the toolkit along (file:../sharedCoreLib/publisher-ci).
+      # It also carries scandoc-lib (file:../sharedCoreLib/scandoc-lib).
+      - name: Check out sharedCoreLib (file:../sharedCoreLib + publisher-ci)
+        uses: actions/checkout@v4
+        with:
+          repository: tokans/sharedCoreLib
+          ref: master
+          path: sharedCoreLib
+          token: ${{ secrets.PUBLISH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: myHealth/package-lock.json
+
+      # Installs devDeps too, so the toolkit (the file: sibling) lands in
+      # node_modules/.bin where `npx` resolves it locally — no registry lookup.
+      - name: Install npm dependencies
+        run: npm ci
+
+      # Fails the build on any finding at or above the configured threshold (default: high).
+      - name: Run publisher security checks
+        run: npx sharedcorelib-publisher-ci check

@@ -28,6 +28,15 @@ pub const CORE_VERSION: u32 = 1;
 pub const APP_ID: &str = "myHealth";
 
 /// Suite root folder name under the per-user local-data dir, shared across the suite.
+///
+/// Debug builds (`tauri:dev`) use a SEPARATE root so development data never bleeds into
+/// an installed production app's shared suite DB — and so a freshly installed MSI starts
+/// from an empty `suite.db` instead of inheriting whatever the dev build left behind.
+/// Every suite app must apply the same rule, so dev apps still share L2 with each other
+/// and prod apps with each other — just never across the dev/prod boundary.
+#[cfg(debug_assertions)]
+const SUITE_DIR: &str = "SharedCoreLib-dev";
+#[cfg(not(debug_assertions))]
 const SUITE_DIR: &str = "SharedCoreLib";
 
 #[derive(Serialize, Deserialize, Default)]

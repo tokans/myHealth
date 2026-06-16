@@ -1,32 +1,29 @@
 /**
- * Per-feature, human-friendly Excel export/import.
+ * Per-feature, human-friendly Excel export/import — **scoped to one profile**.
  *
  * Distinct from the whole-store backup (`@/lib/excelBackup` → `sharedcorelib/backup`),
  * which dumps every raw table one-sheet-each for disaster recovery. THIS module gives
  * each tab (Reminders, Goals, Schedule, Medications, Vitals) a small, readable workbook
- * the user can edit offline in Excel/Sheets and re-import:
- *   - friendly column headers, one sheet per feature,
- *   - person NAMES instead of `profile_id`, `HH:MM` instead of minutes, "Every day"
- *     instead of `daily`, "Lower is better" instead of `decrease`, "Yes/No" for flags,
- *   - a leading **ID** column: a row whose ID matches an existing record UPDATES it; a
- *     row with a blank ID is ADDED as new. So you can tweak existing items and append
- *     new ones in the same file.
+ * for the **currently selected person only** that the user can edit offline in
+ * Excel/Sheets and re-import:
+ *   - friendly column headers, one sheet per feature (no `profile_id` — the whole file
+ *     belongs to the active profile, whose name is in the file name),
+ *   - `HH:MM` instead of minutes, "Every day" instead of `daily`, "Lower is better"
+ *     instead of `decrease`, "Yes/No" for flags, metric labels instead of kinds,
+ *   - a leading **ID** column: a row whose ID matches one of THIS profile's records
+ *     UPDATES it; a row with a blank ID is ADDED as new (under the active profile). So
+ *     you can tweak existing items and append new ones in the same file.
  *
  * Pure-ish: the SheetJS codec is lazy-imported; all DB access goes through the app's
  * typed `@/db` wrappers. No network — this is on-device data the user moves by hand.
  */
-import { listProfiles, type Profile } from "@/db/profiles";
+import { listRemindersForExport, createManualReminder, updateManualReminder, type Reminder } from "@/db/reminders";
+import { listGoals, createGoal, updateGoal, type Goal } from "@/db/goals";
+import { listBlocks, createBlock, updateBlock, type ScheduleKind } from "@/db/schedule";
 import {
-  listManualReminders, listRemindersForExport, createManualReminder, updateManualReminder, type Reminder,
-} from "@/db/reminders";
-import { listAllGoals, createGoal, updateGoal, type Goal } from "@/db/goals";
-import {
-  listAllBlocks, createBlock, updateBlock, type ScheduleKind,
-} from "@/db/schedule";
-import {
-  listAllMedications, createMedicationFull, updateMedication, type MedicationFields,
+  listMedications, createMedicationFull, updateMedication, type MedicationFields,
 } from "@/db/medications";
-import { listAllMetrics, addMetric, updateMetric } from "@/db/metrics";
+import { listMetricsForProfile, addMetric, updateMetric } from "@/db/metrics";
 import { metricKind, METRIC_KINDS } from "@/lib/metricKinds";
 import { minutesToHHMM, hhmmToMinutes } from "@/lib/utils";
 
@@ -34,6 +31,11 @@ import { minutesToHHMM, hhmmToMinutes } from "@/lib/utils";
 export type FriendlyRow = Record<string, string | number | null>;
 /** A cell value as SheetJS hands it back on import. */
 export type RawRow = Record<string, string | number | boolean | Date | null | undefined>;
+
+/** Everything a feature's export/import is scoped to — currently just the active person. */
+export interface ExcelContext {
+  profileId: number;
+}
 
 export interface ImportSummary {
   added: number;
@@ -43,16 +45,16 @@ export interface ImportSummary {
 }
 
 export interface FeatureExcelSpec {
-  /** Stable key — used for the file name (`myHealth-<key>.xlsx`). */
+  /** Stable key — used for the file name (`myHealth-<key>-<profile>.xlsx`). */
   key: string;
   /** Human label — the sheet name and the dialog title. */
   label: string;
   /** Column order written to the sheet (also the import header contract). */
   headers: string[];
-  /** Build the friendly rows for the whole suite (all people). */
-  exportRows(): Promise<FriendlyRow[]>;
-  /** Upsert parsed rows; returns a human-readable summary. */
-  importRows(rows: RawRow[]): Promise<ImportSummary>;
+  /** Build the friendly rows for the active profile. */
+  exportRows(ctx: ExcelContext): Promise<FriendlyRow[]>;
+  /** Upsert parsed rows into the active profile; returns a human-readable summary. */
+  importRows(rows: RawRow[], ctx: ExcelContext): Promise<ImportSummary>;
 }
 
 // ── codec ────────────────────────────────────────────────────────────────────
@@ -63,13 +65,16 @@ function safeSheetName(label: string): string {
 }
 
 /**
- * Build the `.xlsx` bytes for one feature. Always writes the header row (even with no
- * data — a blank, fillable template), and reports how many data rows were included so
- * the UI can tell the user when it exported an empty template vs. real data.
+ * Build the `.xlsx` bytes for one feature and one profile. Always writes the header row
+ * (even with no data — a blank, fillable template), and reports how many data rows were
+ * included so the UI can tell the user when it exported an empty template vs. real data.
  */
-export async function exportFeatureWorkbook(spec: FeatureExcelSpec): Promise<{ bytes: Uint8Array; rowCount: number }> {
+export async function exportFeatureWorkbook(
+  spec: FeatureExcelSpec,
+  ctx: ExcelContext,
+): Promise<{ bytes: Uint8Array; rowCount: number }> {
   const XLSX = await import("xlsx");
-  const rows = await spec.exportRows();
+  const rows = await spec.exportRows(ctx);
   // With data: a normal sheet. Empty: a header-only template (json_to_sheet([]) would
   // emit an empty sheet with no header, so write the header row explicitly).
   const ws = rows.length
@@ -134,23 +139,6 @@ function fromLabel<T extends string>(v: unknown, map: Record<T, string>, fallbac
   return fallback;
 }
 
-interface ProfileMaps {
-  nameById: Map<number, string>;
-  idByName: Map<string, number>;
-  selfId: number | null;
-}
-function profileMaps(profiles: Profile[]): ProfileMaps {
-  const nameById = new Map<number, string>();
-  const idByName = new Map<string, number>();
-  let selfId: number | null = null;
-  for (const p of profiles) {
-    nameById.set(p.id, p.name);
-    idByName.set(p.name.trim().toLowerCase(), p.id);
-    if (p.is_self) selfId = p.id;
-  }
-  return { nameById, idByName, selfId };
-}
-
 /** The data row index → its 1-based spreadsheet row (header is row 1). */
 const sheetRow = (i: number) => i + 2;
 
@@ -203,12 +191,10 @@ function isAutoRow(v: unknown): boolean {
 const reminders: FeatureExcelSpec = {
   key: "reminders",
   label: "Reminders",
-  headers: ["ID", "Person", "What", "Details", "Due date", "Status", "Auto"],
-  async exportRows() {
-    const { nameById } = profileMaps(await listProfiles());
-    return (await listRemindersForExport()).map((r) => ({
+  headers: ["ID", "What", "Details", "Due date", "Status", "Auto"],
+  async exportRows({ profileId }) {
+    return (await listRemindersForExport(profileId)).map((r) => ({
       ID: r.id,
-      Person: r.profile_id != null ? (nameById.get(r.profile_id) ?? "") : "",
       What: r.title,
       Details: r.detail ?? "",
       "Due date": r.due_date,
@@ -216,9 +202,11 @@ const reminders: FeatureExcelSpec = {
       Auto: r.kind === "derived" ? "Yes" : "No",
     }));
   },
-  async importRows(rows) {
-    const maps = profileMaps(await listProfiles());
-    const existing = new Set((await listManualReminders()).map((r) => r.id));
+  async importRows(rows, { profileId }) {
+    // Manual reminders that belong to THIS profile are the only upsert targets.
+    const existing = new Set(
+      (await listRemindersForExport(profileId)).filter((r) => r.kind === "manual").map((r) => r.id),
+    );
     const out: ImportSummary = { added: 0, updated: 0, skipped: 0, warnings: [] };
     for (const [i, row] of rows.entries()) {
       // Auto/derived reminders are app-managed — never created or overwritten from a sheet.
@@ -229,12 +217,6 @@ const reminders: FeatureExcelSpec = {
       }
       const title = str(row["What"]);
       if (!title) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: missing "What" — skipped.`); continue; }
-      const personName = str(row["Person"]);
-      let profileId: number | null = null;
-      if (personName) {
-        profileId = maps.idByName.get(personName.toLowerCase()) ?? null;
-        if (profileId == null) out.warnings.push(`Row ${sheetRow(i)}: unknown person "${personName}" — saved without a person.`);
-      }
       const due = dateStr(row["Due date"]);
       if (!due) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: missing "Due date" — skipped.`); continue; }
       const status = fromLabel(row["Status"], REMINDER_STATUS, "open");
@@ -247,7 +229,7 @@ const reminders: FeatureExcelSpec = {
         const newId = await createManualReminder({ profile_id: profileId, title, detail: fields.detail ?? undefined, due_date: due });
         if (status !== "open") await updateManualReminder(newId, fields);
         out.added++;
-        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found — added as new.`);
+        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found for this person — added as new.`);
       }
     }
     return out;
@@ -257,12 +239,10 @@ const reminders: FeatureExcelSpec = {
 const goals: FeatureExcelSpec = {
   key: "goals",
   label: "Goals",
-  headers: ["ID", "Person", "Goal", "Metric", "Baseline", "Target", "Unit", "Direction", "Target date", "Status"],
-  async exportRows() {
-    const { nameById } = profileMaps(await listProfiles());
-    return (await listAllGoals()).map((g) => ({
+  headers: ["ID", "Goal", "Metric", "Baseline", "Target", "Unit", "Direction", "Target date", "Status"],
+  async exportRows({ profileId }) {
+    return (await listGoals(profileId)).map((g) => ({
       ID: g.id,
-      Person: nameById.get(g.profile_id) ?? "",
       Goal: g.title,
       Metric: g.metric_kind ? metricLabel(g.metric_kind) : "",
       Baseline: g.baseline ?? "",
@@ -273,16 +253,12 @@ const goals: FeatureExcelSpec = {
       Status: toLabel(g.status, GOAL_STATUS),
     }));
   },
-  async importRows(rows) {
-    const maps = profileMaps(await listProfiles());
-    const existing = new Set((await listAllGoals()).map((g) => g.id));
+  async importRows(rows, { profileId }) {
+    const existing = new Set((await listGoals(profileId)).map((g) => g.id));
     const out: ImportSummary = { added: 0, updated: 0, skipped: 0, warnings: [] };
     for (const [i, row] of rows.entries()) {
       const title = str(row["Goal"]);
       if (!title) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: missing "Goal" — skipped.`); continue; }
-      const personName = str(row["Person"]);
-      const profileId = personName ? maps.idByName.get(personName.toLowerCase()) ?? null : maps.selfId;
-      if (profileId == null) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: unknown person "${personName ?? ""}" — skipped.`); continue; }
       const mk = metricKindFromLabel(row["Metric"]);
       const unit = str(row["Unit"]) ?? (mk ? metricKind(mk)?.unit ?? null : null);
       const fields = {
@@ -309,7 +285,7 @@ const goals: FeatureExcelSpec = {
         });
         if (fields.status !== "active") await updateGoal(newId, fields);
         out.added++;
-        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found — added as new.`);
+        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found for this person — added as new.`);
       }
     }
     return out;
@@ -319,12 +295,10 @@ const goals: FeatureExcelSpec = {
 const schedule: FeatureExcelSpec = {
   key: "schedule",
   label: "Schedule",
-  headers: ["ID", "Person", "Type", "What", "Start", "End", "Days"],
-  async exportRows() {
-    const { nameById } = profileMaps(await listProfiles());
-    return (await listAllBlocks()).map((b) => ({
+  headers: ["ID", "Type", "What", "Start", "End", "Days"],
+  async exportRows({ profileId }) {
+    return (await listBlocks(profileId)).map((b) => ({
       ID: b.id,
-      Person: nameById.get(b.profile_id) ?? "",
       Type: toLabel(b.kind, SCHEDULE_KIND),
       What: b.title,
       Start: minutesToHHMM(b.start_min),
@@ -332,16 +306,12 @@ const schedule: FeatureExcelSpec = {
       Days: daysToLabel(b.days),
     }));
   },
-  async importRows(rows) {
-    const maps = profileMaps(await listProfiles());
-    const existing = new Set((await listAllBlocks()).map((b) => b.id));
+  async importRows(rows, { profileId }) {
+    const existing = new Set((await listBlocks(profileId)).map((b) => b.id));
     const out: ImportSummary = { added: 0, updated: 0, skipped: 0, warnings: [] };
     for (const [i, row] of rows.entries()) {
       const title = str(row["What"]);
       if (!title) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: missing "What" — skipped.`); continue; }
-      const personName = str(row["Person"]);
-      const profileId = personName ? maps.idByName.get(personName.toLowerCase()) ?? null : maps.selfId;
-      if (profileId == null) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: unknown person "${personName ?? ""}" — skipped.`); continue; }
       const start = str(row["Start"]);
       if (!start) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: missing "Start" time — skipped.`); continue; }
       const endRaw = str(row["End"]);
@@ -360,7 +330,7 @@ const schedule: FeatureExcelSpec = {
       } else {
         await createBlock({ profile_id: profileId, kind: fields.kind, title, start_min: fields.start_min, end_min: fields.end_min, days: fields.days });
         out.added++;
-        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found — added as new.`);
+        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found for this person — added as new.`);
       }
     }
     return out;
@@ -377,12 +347,10 @@ function activeFromLabel(v: unknown): number {
 const medications: FeatureExcelSpec = {
   key: "medications",
   label: "Medications",
-  headers: ["ID", "Person", "Drug", "Strength", "Form", "Schedule", "Times", "Prescriber", "Start date", "End date", "Notes", "Active"],
-  async exportRows() {
-    const { nameById } = profileMaps(await listProfiles());
-    return (await listAllMedications()).map((m) => ({
+  headers: ["ID", "Drug", "Strength", "Form", "Schedule", "Times", "Prescriber", "Start date", "End date", "Notes", "Active"],
+  async exportRows({ profileId }) {
+    return (await listMedications(profileId, false)).map((m) => ({
       ID: m.id,
-      Person: nameById.get(m.profile_id) ?? "",
       Drug: m.drug,
       Strength: m.strength ?? "",
       Form: m.form ?? "",
@@ -395,16 +363,12 @@ const medications: FeatureExcelSpec = {
       Active: m.active ? YES_NO["1"] : YES_NO["0"],
     }));
   },
-  async importRows(rows) {
-    const maps = profileMaps(await listProfiles());
-    const existing = new Set((await listAllMedications()).map((m) => m.id));
+  async importRows(rows, { profileId }) {
+    const existing = new Set((await listMedications(profileId, false)).map((m) => m.id));
     const out: ImportSummary = { added: 0, updated: 0, skipped: 0, warnings: [] };
     for (const [i, row] of rows.entries()) {
       const drug = str(row["Drug"]);
       if (!drug) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: missing "Drug" — skipped.`); continue; }
-      const personName = str(row["Person"]);
-      const profileId = personName ? maps.idByName.get(personName.toLowerCase()) ?? null : maps.selfId;
-      if (profileId == null) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: unknown person "${personName ?? ""}" — skipped.`); continue; }
       const fields: MedicationFields = {
         profile_id: profileId,
         drug,
@@ -425,7 +389,7 @@ const medications: FeatureExcelSpec = {
       } else {
         await createMedicationFull(fields);
         out.added++;
-        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found — added as new.`);
+        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found for this person — added as new.`);
       }
     }
     return out;
@@ -435,12 +399,10 @@ const medications: FeatureExcelSpec = {
 const vitals: FeatureExcelSpec = {
   key: "vitals",
   label: "Vitals",
-  headers: ["ID", "Person", "Metric", "Value", "Unit", "Date", "Note"],
-  async exportRows() {
-    const { nameById } = profileMaps(await listProfiles());
-    return (await listAllMetrics()).map((m) => ({
+  headers: ["ID", "Metric", "Value", "Unit", "Date", "Note"],
+  async exportRows({ profileId }) {
+    return (await listMetricsForProfile(profileId)).map((m) => ({
       ID: m.id,
-      Person: nameById.get(m.profile_id) ?? "",
       Metric: metricLabel(m.kind),
       Value: m.value,
       Unit: m.unit ?? "",
@@ -448,18 +410,14 @@ const vitals: FeatureExcelSpec = {
       Note: m.note ?? "",
     }));
   },
-  async importRows(rows) {
-    const maps = profileMaps(await listProfiles());
-    const existing = new Set((await listAllMetrics()).map((m) => m.id));
+  async importRows(rows, { profileId }) {
+    const existing = new Set((await listMetricsForProfile(profileId)).map((m) => m.id));
     const out: ImportSummary = { added: 0, updated: 0, skipped: 0, warnings: [] };
     for (const [i, row] of rows.entries()) {
       const kind = metricKindFromLabel(row["Metric"]);
       if (!kind) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: missing "Metric" — skipped.`); continue; }
       const value = num(row["Value"]);
       if (value == null) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: "${kind}" has no numeric Value — skipped.`); continue; }
-      const personName = str(row["Person"]);
-      const profileId = personName ? maps.idByName.get(personName.toLowerCase()) ?? null : maps.selfId;
-      if (profileId == null) { out.skipped++; out.warnings.push(`Row ${sheetRow(i)}: unknown person "${personName ?? ""}" — skipped.`); continue; }
       const unit = str(row["Unit"]) ?? metricKind(kind)?.unit ?? null;
       const takenAt = str(row["Date"]) ?? new Date().toISOString().slice(0, 10);
       const fields = { profile_id: profileId, kind, value, unit, taken_at: takenAt, note: str(row["Note"]) };
@@ -470,7 +428,7 @@ const vitals: FeatureExcelSpec = {
       } else {
         await addMetric({ profile_id: profileId, kind, value, unit: unit ?? undefined, taken_at: takenAt, note: fields.note ?? undefined });
         out.added++;
-        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found — added as new.`);
+        if (id != null) out.warnings.push(`Row ${sheetRow(i)}: ID ${id} not found for this person — added as new.`);
       }
     }
     return out;

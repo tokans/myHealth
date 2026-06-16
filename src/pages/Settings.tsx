@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Heart, Stethoscope, ExternalLink } from "lucide-react";
+import { Heart, Stethoscope, ExternalLink, Camera } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BackupPanel } from "sharedcorelib/ui";
 import type { ExcelBackup } from "sharedcorelib/backup";
 import { isTauri } from "@/lib/environment";
+import { useSettingsStore } from "@/stores/settings.store";
 import { buildExcelBackup, saveBackupFile } from "@/lib/excelBackup";
 import { openDonatePage, openPartnerSignup } from "@/lib/donate";
 import {
@@ -111,6 +112,43 @@ function SupporterCard({ onChanged }: { onChanged: () => void }) {
 }
 
 /**
+ * Camera scanning — an opt-in, phone-only convenience: when on, the Documents
+ * vault offers "Scan with camera" (the webview's native camera) alongside file
+ * pick. Off by default; the photo is encrypted on-device like any other file.
+ */
+function ScanningCard() {
+  const cameraScan = useSettingsStore((s) => s.cameraScan);
+  const setCameraScan = useSettingsStore((s) => s.setCameraScan);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Document scanning</CardTitle>
+        <CardDescription>
+          On phones, add a <span className="font-medium">Scan with camera</span> button to the
+          Documents vault so you can photograph a prescription, lab report or card. The photo is
+          encrypted on this device — nothing is uploaded.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={cameraScan}
+            onChange={(e) => void setCameraScan(e.target.checked)}
+            data-testid="settings-camera-scan"
+          />
+          <span className="flex items-center gap-1.5">
+            <Camera className="h-4 w-4 text-primary" /> Enable camera scanning on mobile
+          </span>
+        </label>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
  * Settings — suite-standard utility surface. First resident: the whole-store
  * Excel backup/restore (`sharedcorelib/backup` subsystem #22). Everything runs
  * on-device; the exported workbook goes only where the user saves it.
@@ -166,6 +204,8 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      <ScanningCard />
 
       <SupporterCard
         onChanged={() => {

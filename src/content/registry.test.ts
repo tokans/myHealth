@@ -17,7 +17,8 @@ describe("baked content registry (auto-discovered folders)", () => {
       expect(t.icon).toBeTruthy();
       expect(["tracker", "caretaker", "champion"]).toContain(t.tier);
       expect(t.releaseTag).toMatch(/^content-/);
-      expect(t.samples.length).toBeGreaterThan(0);
+      // A baked type ships content either as flat samples or a subtype tree.
+      expect(t.samples.length > 0 || !!t.tree).toBe(true);
       expect(t.source).toBe("baked");
     }
   });

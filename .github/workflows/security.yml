@@ -4,7 +4,7 @@
 # `file:../` sibling paths, NOT the npm registry. So before `npm ci` can install
 # them — and before `npx sharedcorelib-publisher-ci` can find the binary in
 # node_modules/.bin instead of trying (and failing) to fetch it from the registry —
-# the sibling repos must be laid out next to the app, exactly like release.yml's
+# the sibling repos must be laid out next to the app, exactly like build-release.yml's
 # build job does. PUBLISH_TOKEN (classic PAT) authenticates the cross-repo checkouts.
 name: security
 

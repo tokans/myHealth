@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, User, UserPlus, Bug, Compass } from "lucide-react";
+import { Check, User, UserPlus, Bug, Compass, Settings as SettingsIcon } from "lucide-react";
 import { SupportedByTokans } from "sharedcorelib/ui";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,11 @@ export function ProfileDrawer({
   function goJourney() {
     onOpenChange(false);
     navigate("/journey");
+  }
+
+  function goSettings() {
+    onOpenChange(false);
+    navigate("/settings");
   }
 
   return (
@@ -107,6 +112,14 @@ export function ProfileDrawer({
           >
             <Compass className="h-4 w-4" />
             Your journey
+          </button>
+          <button
+            type="button"
+            onClick={goSettings}
+            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <SettingsIcon className="h-4 w-4" />
+            Settings
           </button>
           <SheetClose asChild>
             <button

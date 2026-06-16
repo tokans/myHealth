@@ -1,17 +1,19 @@
 import { useMemo, useState } from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
-import { Clock, ChevronLeft, Download, Loader2, Package, Trash2, Lock } from "lucide-react";
+import { Clock, ChevronLeft, Download, Loader2, Package, Plus, Check, Trash2, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { isTauri } from "@/lib/environment";
 import { useGatingStore } from "@/stores/gating.store";
 import { tierVisibility, type EarnedTier } from "@/lib/featureGate";
 import { useContentTypes, findContentType } from "@/content/registry";
 import { useContentStore } from "@/stores/content.store";
-import { checkTypeNow, contentUpdatesConfigured } from "@/content/updater";
+import { checkTypeNow, contentUpdatesConfigured, contentSyncAvailable } from "@/content/updater";
 import {
   mergeEntries,
   bundleEntries,
+  buildNodeTree,
+  nodeAt,
+  nodeEntries,
   totalDurationSec,
   formatDuration,
   stepImage,
@@ -19,6 +21,7 @@ import {
   type ContentEntry,
   type ContentLevel,
 } from "@/content/model";
+import { ContentTreeNav } from "@/components/content/ContentTreeNav";
 import { cn } from "@/lib/utils";
 
 const TIER_LABEL: Record<EarnedTier, string> = { tracker: "Tracker", caretaker: "Caretaker", champion: "Champion" };
@@ -63,11 +66,22 @@ function ContentLocked({ type }: { type: ContentType }) {
 
 function ContentInner({ type }: { type: ContentType }) {
   const bundles = useContentStore((s) => s.bundlesByType[type.key]);
+  const [path, setPath] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // A type's content is a node tree: its `tree` (subtypes) or a single root leaf
+  // built from its flat samples. The breadcrumb dropdown walks it; leaves list entries.
+  const root = useMemo(
+    () => type.tree ?? buildNodeTree({ key: type.key, label: type.label, entries: type.samples }),
+    [type],
+  );
+  const current = useMemo(() => nodeAt(root, path) ?? root, [root, path]);
+  const hasSubtypes = root.children.length > 0;
+
+  // Entries for the current node; downloaded bundles surface at the root level.
   const entries = useMemo(
-    () => mergeEntries(type.samples, bundleEntries(bundles ?? [])),
-    [type, bundles],
+    () => mergeEntries(nodeEntries(current), current === root ? bundleEntries(bundles ?? []) : []),
+    [current, root, bundles],
   );
   const selected = entries.find((e) => e.id === selectedId) ?? null;
   const Icon = type.icon;
@@ -75,6 +89,11 @@ function ContentInner({ type }: { type: ContentType }) {
   if (selected) {
     return <EntryDetail type={type} entry={selected} onBack={() => setSelectedId(null)} />;
   }
+
+  const navigate = (p: string[]) => {
+    setPath(p);
+    setSelectedId(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -87,11 +106,21 @@ function ContentInner({ type }: { type: ContentType }) {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {entries.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} onOpen={() => setSelectedId(entry.id)} />
-        ))}
-      </div>
+      {hasSubtypes && <ContentTreeNav root={root} path={path} onNavigate={navigate} />}
+
+      {entries.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {entries.map((entry) => (
+            <EntryCard key={entry.id} entry={entry} onOpen={() => setSelectedId(entry.id)} />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          {current.children.length > 0
+            ? `Choose a section above to see ${type.entryNoun}s.`
+            : `No ${type.entryNoun}s here yet.`}
+        </p>
+      )}
 
       <BundleManager type={type} />
 
@@ -197,19 +226,29 @@ function EntryDetail({ type, entry, onBack }: { type: ContentType; entry: Conten
   );
 }
 
-/** Download / manage separately-published bundles for this content type. */
+/** Browse / install / remove the separately-published bundles for this content type. */
 function BundleManager({ type }: { type: ContentType }) {
-  const bundles = useContentStore((s) => s.bundlesByType[type.key]) ?? [];
+  const installed = useContentStore((s) => s.bundlesByType[type.key]) ?? [];
+  const availableBundles = useContentStore((s) => s.availableByType[type.key]) ?? [];
+  const installBundle = useContentStore((s) => s.installBundle);
   const removeBundle = useContentStore((s) => s.removeBundle);
   const [status, setStatus] = useState<"idle" | "checking" | "done" | "none">("idle");
 
   async function onCheck() {
     setStatus("checking");
-    const applied = await checkTypeNow(type);
-    setStatus(applied ? "done" : "none");
+    const found = await checkTypeNow(type);
+    setStatus(found ? "done" : "none");
   }
 
   const configured = contentUpdatesConfigured();
+  const canSync = contentSyncAvailable();
+
+  // One row per bundle: the install catalog ⊕ anything still installed, installed-state flagged.
+  const installedIds = new Set(installed.map((b) => b.bundleId));
+  const rows = new Map<string, { bundle: (typeof installed)[number]; installed: boolean }>();
+  for (const b of availableBundles) rows.set(b.bundleId, { bundle: b, installed: installedIds.has(b.bundleId) });
+  for (const b of installed) rows.set(b.bundleId, { bundle: b, installed: true });
+  const list = [...rows.values()].sort((a, b) => a.bundle.name.localeCompare(b.bundle.name));
 
   return (
     <Card>
@@ -218,51 +257,76 @@ function BundleManager({ type }: { type: ContentType }) {
           <Download className="h-4 w-4 text-primary" /> {type.label} bundles
         </CardTitle>
         <CardDescription>
-          More {type.entryNoun}s are published as separate, signed bundles, refreshed daily in the
-          background. {bundles.length > 0 ? `${bundles.length} installed.` : "None downloaded yet."}
+          Extra {type.entryNoun}s are published as separate, signed bundles. Tap one to add it.
+          {installed.length > 0 ? ` ${installed.length} installed.` : ""}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {bundles.length > 0 && (
+        {list.length > 0 && (
           <ul className="space-y-1.5">
-            {bundles.map((b) => (
-              <li key={b.bundleId} className="flex items-center justify-between rounded-md border p-2 text-sm">
+            {list.map(({ bundle: b, installed: isInstalled }) => (
+              <li
+                key={b.bundleId}
+                onClick={() => !isInstalled && installBundle(type.key, b.bundleId)}
+                className={cn(
+                  "flex items-center justify-between rounded-md border p-2 text-sm",
+                  !isInstalled && "cursor-pointer hover:bg-accent/40",
+                )}
+              >
                 <span className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <Package className={cn("h-4 w-4", isInstalled ? "text-primary" : "text-muted-foreground")} />
                   <span className="font-medium">{b.name}</span>
                   <span className="text-xs text-muted-foreground">
                     v{b.version} · {b.entries.length} {type.entryNoun}
                   </span>
                 </span>
-                <Button size="icon" variant="ghost" title="Remove bundle" onClick={() => removeBundle(type.key, b.bundleId)}>
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                </Button>
+                {isInstalled ? (
+                  <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-xs text-emerald-600">
+                      <Check className="h-3.5 w-3.5" /> Added
+                    </span>
+                    <Button size="icon" variant="ghost" title="Remove bundle" onClick={(e) => { e.stopPropagation(); removeBundle(type.key, b.bundleId); }}>
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </span>
+                ) : (
+                  <Button size="sm" variant="ghost" title="Add bundle" onClick={(e) => { e.stopPropagation(); installBundle(type.key, b.bundleId); }}>
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
         )}
 
         <div className="flex items-center gap-3">
-          <Button onClick={onCheck} disabled={status === "checking" || !configured || !isTauri()}>
+          <Button onClick={onCheck} disabled={status === "checking" || !canSync}>
             {status === "checking" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Check now
           </Button>
-          {status === "done" && <span className="text-sm text-emerald-600">New {type.entryNoun}s added.</span>}
-          {status === "none" && <span className="text-sm text-muted-foreground">No new bundles found.</span>}
+          {status === "done" && <span className="text-sm text-muted-foreground">Catalog refreshed — tap a bundle to add it.</span>}
+          {status === "none" && <span className="text-sm text-muted-foreground">No bundles found.</span>}
         </div>
 
         {!configured ? (
           <p className="text-xs text-muted-foreground">
-            Downloads aren't configured in this build. Bundles are verified, signed packs pulled from the
-            project's GitHub release.
+            Downloads aren't configured in this build. Run <span className="font-mono text-[11px]">npm run content:dev</span> to
+            build, sign &amp; serve sample bundles locally and set the keys, then reload.
           </p>
-        ) : !isTauri() ? (
+        ) : !canSync ? (
           <p className="text-xs text-muted-foreground">
-            Open the desktop app to download bundles (the browser preview can't fetch them).
+            Open the desktop app to download bundles, or use the <span className="font-mono text-[11px]">npm run dev</span> preview
+            with <span className="font-mono text-[11px]">npm run content:dev</span> running.
+          </p>
+        ) : list.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Tap <strong>Check now</strong> to fetch the latest {type.entryNoun} bundles from the{" "}
+            <span className="font-mono text-[11px]">{type.releaseTag}</span> release.
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Pulled from the <span className="font-mono text-[11px]">{type.releaseTag}</span> release; checked once a day.
+            From the <span className="font-mono text-[11px]">{type.releaseTag}</span> release; the catalog refreshes daily.
+            Removing a bundle keeps it here to re-add.
           </p>
         )}
       </CardContent>

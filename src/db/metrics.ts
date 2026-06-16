@@ -48,9 +48,12 @@ export async function latestMetrics(profileId: number): Promise<Metric[]> {
   );
 }
 
-/** Every reading across profiles and kinds — for the Excel export. */
-export async function listAllMetrics(): Promise<Metric[]> {
-  return query<Metric>(`SELECT * FROM metrics ORDER BY profile_id ASC, kind ASC, taken_at ASC`);
+/** One profile's readings across all kinds — for the Excel export. */
+export async function listMetricsForProfile(profileId: number): Promise<Metric[]> {
+  return query<Metric>(
+    `SELECT * FROM metrics WHERE profile_id = ?1 ORDER BY kind ASC, taken_at ASC`,
+    [profileId],
+  );
 }
 
 /** Update an existing reading (Excel import, update-by-ID path). Source stays as-is. */

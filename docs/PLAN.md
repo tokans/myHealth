@@ -146,7 +146,7 @@ Each row is a **mechanism** provided by the shared core, parameterized by **app-
 | ICE/emergency | contact extraction + ICE-card primitives | medical ICE fields |
 | Sync | LAN transport (Rust pipe) + envelope crypto + LWW merge | **sync adapter**: which health tables sync + change-set schema |
 | UI primitives | shadcn/ui set, `AppShell` (sidebar/bottom-tab), `FiniteSetInput`, common forms | nav config, theme, copy |
-| Backup / data portability | whole-store Excel backup+restore engine + `BackupPanel` (one sheet per table, secret-hashing, password option) | the backup sources (app DB + suite-DB slice). **Per-tab human-friendly Excel** (Reminders/Goals/Schedule/Medications/Vitals — `src/lib/featureExcel.ts` + `ExcelButtons`) is an **app-local** addition on top, using SheetJS directly with friendly column maps + update-by-ID upsert |
+| Backup / data portability | whole-store Excel backup+restore engine + `BackupPanel` (one sheet per table, secret-hashing, password option) | the backup sources (app DB + suite-DB slice). **Per-tab human-friendly Excel** (Reminders/Goals/Schedule/Medications/Vitals — `src/lib/featureExcel.ts` + `ExcelButtons`) is an **app-local** addition on top, **scoped to the active profile**, using SheetJS directly with friendly column maps + per-profile update-by-ID upsert |
 
 The **double-gate rule** for master content (tier earned **AND** owner-published bundle present) is the shared gating store's behavior: the route/menu entry isn't rendered until `tier ≥ threshold && bundlePresent`. No teaser state.
 

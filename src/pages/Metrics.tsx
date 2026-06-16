@@ -59,7 +59,7 @@ export default function Metrics() {
             {profile ? `Logging for ${profile.name}.` : "Create a profile first."}
           </p>
         </div>
-        <ExcelButtons spec={FEATURE_EXCEL.vitals!} onImported={loadRecent} />
+        <ExcelButtons spec={FEATURE_EXCEL.vitals!} profileId={profile?.id} profileName={profile?.name} onImported={loadRecent} />
       </div>
 
       {profile && (
@@ -73,6 +73,7 @@ export default function Metrics() {
               <Label htmlFor="kind">What</Label>
               <select
                 id="kind"
+                data-testid="metrics-kind"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={kind}
                 onChange={(e) => setKind(e.target.value)}
@@ -89,6 +90,7 @@ export default function Metrics() {
                 <Label htmlFor="val">Value ({meta.unit})</Label>
                 <Input
                   id="val"
+                  data-testid="metrics-value"
                   type="number"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
@@ -97,10 +99,10 @@ export default function Metrics() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input id="date" data-testid="metrics-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
             </div>
-            <Button onClick={onAdd} disabled={!value.trim()}>
+            <Button onClick={onAdd} disabled={!value.trim()} data-testid="metrics-save">
               Save reading
             </Button>
           </CardContent>

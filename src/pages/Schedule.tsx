@@ -70,8 +70,8 @@ function ScheduleInner() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ExcelButtons spec={FEATURE_EXCEL.schedule!} onImported={load} />
-          <Button onClick={() => setShow((s) => !s)}>
+          <ExcelButtons spec={FEATURE_EXCEL.schedule!} profileId={profile?.id} profileName={profile?.name} onImported={load} />
+          <Button onClick={() => setShow((s) => !s)} data-testid="schedule-add">
             <Plus className="h-4 w-4" /> Add block
           </Button>
         </div>
@@ -137,7 +137,7 @@ function BlockFormCard({ onSubmit, onCancel }: { onSubmit: (b: BlockForm) => voi
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="btitle">What</Label>
-          <Input id="btitle" placeholder="Morning medication" value={f.title} onChange={(e) => set("title", e.target.value)} />
+          <Input id="btitle" data-testid="block-title" placeholder="Morning medication" value={f.title} onChange={(e) => set("title", e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -161,7 +161,7 @@ function BlockFormCard({ onSubmit, onCancel }: { onSubmit: (b: BlockForm) => voi
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="bstart">Start</Label>
-            <Input id="bstart" type="time" value={f.start} onChange={(e) => set("start", e.target.value)} />
+            <Input id="bstart" data-testid="block-start" type="time" value={f.start} onChange={(e) => set("start", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="bend">End (optional)</Label>
@@ -169,7 +169,7 @@ function BlockFormCard({ onSubmit, onCancel }: { onSubmit: (b: BlockForm) => voi
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => f.title.trim() && onSubmit(f)} disabled={!f.title.trim()}>
+          <Button onClick={() => f.title.trim() && onSubmit(f)} disabled={!f.title.trim()} data-testid="block-save">
             Save
           </Button>
           <Button variant="ghost" onClick={onCancel}>

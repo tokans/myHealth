@@ -22,12 +22,22 @@ beforeEach(() => {
 });
 
 describe("listOpenReminders", () => {
-  it("selects open reminders ordered by due_date", async () => {
+  it("selects all open reminders ordered by due_date when no profile is given", async () => {
     mockQuery.mockResolvedValue([] as any);
     await listOpenReminders();
-    const [sql] = mockQuery.mock.calls[0];
+    const [sql, params] = mockQuery.mock.calls[0];
     expect(sql).toContain("WHERE status = 'open'");
+    expect(sql).not.toContain("profile_id");
     expect(sql).toContain("ORDER BY due_date ASC");
+    expect(params).toBeUndefined();
+  });
+
+  it("scopes to a single profile when given one", async () => {
+    mockQuery.mockResolvedValue([] as any);
+    await listOpenReminders(5);
+    const [sql, params] = mockQuery.mock.calls[0];
+    expect(sql).toContain("status = 'open' AND profile_id = ?1");
+    expect(params).toEqual([5]);
   });
 });
 

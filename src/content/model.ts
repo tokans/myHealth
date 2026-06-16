@@ -25,3 +25,23 @@ export {
   focusTags,
   stepImage,
 } from "sharedcorelib/content";
+
+// Arbitrary-depth content TREES (interim-folder property files + leaf content).
+// An app gathers its `content/**` files (via `import.meta.glob`) into RawFiles and
+// folds them with `buildContentTree`/`buildContentTreeFromGlob`.
+export type { ContentNode, PropertyValue, RawFile } from "sharedcorelib/content";
+export {
+  buildContentTree,
+  buildContentTreeFromGlob,
+  buildNodeTree,
+  parseProperty,
+  parseSimpleYaml,
+  nodeAt,
+  nodeLabel,
+  nodeOrder,
+  nodeEntries,
+  leaves,
+  prop,
+  propString,
+  propData,
+} from "sharedcorelib/content";

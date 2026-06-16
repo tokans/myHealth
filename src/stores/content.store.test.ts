@@ -11,7 +11,20 @@ const bundle = (id: string, version = 1): ContentBundle => ({
 
 describe("useContentStore", () => {
   beforeEach(() => {
-    useContentStore.setState({ bundlesByType: {}, revisionByType: {}, remoteTypes: [], catalogRevision: 0, lastCheckedAt: 0 });
+    useContentStore.setState({ bundlesByType: {}, availableByType: {}, revisionByType: {}, remoteTypes: [], catalogRevision: 0, lastCheckedAt: 0 });
+  });
+
+  it("installs from the available catalog and keeps removed bundles re-addable", () => {
+    useContentStore.getState().setAvailable("yoga", [bundle("a"), bundle("b")]);
+    expect(useContentStore.getState().bundlesByType.yoga ?? []).toEqual([]);
+    useContentStore.getState().installBundle("yoga", "a");
+    expect(useContentStore.getState().bundlesByType.yoga!.map((b) => b.bundleId)).toEqual(["a"]);
+    useContentStore.getState().removeBundle("yoga", "a");
+    expect(useContentStore.getState().bundlesByType.yoga).toEqual([]);
+    // Still available → re-installable.
+    expect(useContentStore.getState().availableByType.yoga!.map((b) => b.bundleId)).toEqual(["a", "b"]);
+    useContentStore.getState().installBundle("yoga", "a");
+    expect(useContentStore.getState().bundlesByType.yoga!.map((b) => b.bundleId)).toEqual(["a"]);
   });
 
   it("upserts bundles per type and replaces same-id rather than duplicating", () => {

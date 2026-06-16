@@ -37,13 +37,6 @@ export async function createBlock(b: {
   return res.lastInsertId ?? 0;
 }
 
-/** All schedule blocks across profiles — for the Excel export. */
-export async function listAllBlocks(): Promise<ScheduleBlock[]> {
-  return query<ScheduleBlock>(
-    `SELECT * FROM schedule_blocks ORDER BY profile_id ASC, start_min ASC, id ASC`,
-  );
-}
-
 /** Update an existing schedule block (Excel import, update-by-ID path). */
 export async function updateBlock(
   id: number,

@@ -13,6 +13,21 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "content:build": "node scripts/build-content.mjs build-all --out dist/content-release",
+    "content:dev": "node scripts/content-dev.mjs",
+    "tauri:ios:init": "tauri ios init",
+    "tauri:ios:dev": "tauri ios dev",
+    "ios:plist": "node scripts/ensure-ios-plist.mjs",
+    "demo:reset": "tsx demo/reset.ts",
+    "demo:build": "tsx demo/build.ts",
+    "demo:single": "tsx demo/record.ts",
+    "demo:all": "tsx demo/record.ts --all",
+    "demo:gifs": "tsx demo/record.ts --gifs",
+    "demo:video": "tsx demo/edit/render.ts",
+    "demo:video:marketing": "tsx demo/edit/render.ts marketing",
+    "demo:video:tutorial": "tsx demo/edit/tutorial.ts",
+    "demo:marketing": "tsx demo/record.ts --all && tsx demo/edit/render.ts marketing",
+    "demo:tutorial": "tsx demo/record.ts 20-full-tutorial && tsx demo/edit/tutorial.ts",
     "seed": "node scripts/start-seed.mjs on",
     "seed:reset": "node scripts/start-seed.mjs reset",
     "seed:clear": "node scripts/start-seed.mjs clear",
@@ -51,6 +66,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.460.0",
+    "pdfjs-dist": "4.10.38",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.2",
@@ -59,9 +75,13 @@
     "sharedcorelib": "file:../sharedCoreLib",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "5.1.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.23.8",
     "zustand": "^5.0.1"
+  },
+  "optionalDependencies": {
+    "@mydemo/core": "file:../myDemo"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
@@ -79,9 +99,11 @@
     "postcss": "^8.4.49",
     "sharedcorelib-publisher-ci": "file:../sharedCoreLib/publisher-ci",
     "tailwindcss": "^3.4.14",
+    "tsx": "^4.22.3",
     "typescript": "^5.6.3",
     "vite": "^8.0.14",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.7",
+    "webdriverio": "^9.27.2"
   },
   "allowScripts": {
     "esbuild@0.28.0": true

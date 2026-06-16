@@ -95,8 +95,8 @@ function GoalsInner() {
           <Target className="h-6 w-6 text-primary" /> Goals
         </h1>
         <div className="flex items-center gap-2">
-          <ExcelButtons spec={FEATURE_EXCEL.goals!} onImported={load} />
-          <Button onClick={() => setShow((s) => !s)}>
+          <ExcelButtons spec={FEATURE_EXCEL.goals!} profileId={profile?.id} profileName={profile?.name} onImported={load} />
+          <Button onClick={() => setShow((s) => !s)} data-testid="goals-new">
             <Plus className="h-4 w-4" /> New goal
           </Button>
         </div>
@@ -143,7 +143,7 @@ function GoalCard({
 }) {
   const p = projection;
   return (
-    <Card>
+    <Card data-testid="goal-card">
       <CardContent className="space-y-3 p-4">
         <div className="flex items-start justify-between">
           <div>
@@ -228,13 +228,14 @@ function GoalFormCard({ onSubmit, onCancel }: { onSubmit: (f: GoalForm) => void;
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="gtitle">Title</Label>
-          <Input id="gtitle" placeholder="Reach a healthy weight" value={f.title} onChange={(e) => set("title", e.target.value)} />
+          <Input id="gtitle" data-testid="goal-title" placeholder="Reach a healthy weight" value={f.title} onChange={(e) => set("title", e.target.value)} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="gmetric">Track which metric?</Label>
           <select
             id="gmetric"
+            data-testid="goal-metric"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={f.metricKind}
             onChange={(e) => pickMetric(e.target.value)}
@@ -252,11 +253,11 @@ function GoalFormCard({ onSubmit, onCancel }: { onSubmit: (f: GoalForm) => void;
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="gbaseline">Baseline ({unit})</Label>
-              <Input id="gbaseline" type="number" value={f.baseline} onChange={(e) => set("baseline", e.target.value)} />
+              <Input id="gbaseline" data-testid="goal-baseline" type="number" value={f.baseline} onChange={(e) => set("baseline", e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="gtarget">Target ({unit})</Label>
-              <Input id="gtarget" type="number" value={f.target} onChange={(e) => set("target", e.target.value)} />
+              <Input id="gtarget" data-testid="goal-target" type="number" value={f.target} onChange={(e) => set("target", e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="gdir">Direction</Label>
@@ -273,7 +274,7 @@ function GoalFormCard({ onSubmit, onCancel }: { onSubmit: (f: GoalForm) => void;
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="gdate">Target date</Label>
-              <Input id="gdate" type="date" value={f.targetDate} onChange={(e) => set("targetDate", e.target.value)} />
+              <Input id="gdate" data-testid="goal-date" type="date" value={f.targetDate} onChange={(e) => set("targetDate", e.target.value)} />
             </div>
           </div>
         )}
@@ -282,6 +283,7 @@ function GoalFormCard({ onSubmit, onCancel }: { onSubmit: (f: GoalForm) => void;
           <Button
             onClick={() => f.title.trim() && onSubmit(f)}
             disabled={!f.title.trim() || (!!f.metricKind && !f.target.trim())}
+            data-testid="goal-save"
           >
             Save goal
           </Button>

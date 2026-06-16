@@ -44,12 +44,12 @@ export default function Reminders() {
   async function load() {
     if (!isTauri()) return;
     await syncHabitReminders();
-    setItems((await listOpenReminders()).sort(byDueDate));
+    setItems((await listOpenReminders(profile?.id)).sort(byDueDate));
   }
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [profile?.id]);
 
   async function act(fn: () => Promise<void>) {
     await fn();
@@ -75,18 +75,19 @@ export default function Reminders() {
             <Bell className="h-6 w-6 text-primary" /> Reminders
           </h1>
           <p className="text-muted-foreground">
-            Water and daily-task nudges appear here automatically. Add your own below.
+            {profile ? `${profile.name}'s reminders. ` : ""}Water and daily-task nudges appear
+            automatically. Add your own below.
           </p>
         </div>
-        <ExcelButtons spec={FEATURE_EXCEL.reminders!} onImported={load} />
+        <ExcelButtons spec={FEATURE_EXCEL.reminders!} profileId={profile?.id} profileName={profile?.name} onImported={load} />
       </div>
 
       <Card>
         <CardContent className="flex flex-col gap-2 p-4 sm:flex-row">
           <Input placeholder="Remind me to…" value={title} onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addManual()} />
+            onKeyDown={(e) => e.key === "Enter" && addManual()} data-testid="reminder-title" />
           <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="sm:w-44" />
-          <Button onClick={addManual} disabled={!title.trim()}>
+          <Button onClick={addManual} disabled={!title.trim()} data-testid="reminder-add">
             <Plus className="h-4 w-4" /> Add
           </Button>
         </CardContent>
@@ -105,7 +106,7 @@ export default function Reminders() {
           </CardHeader>
           <CardContent className="space-y-2">
             {rows.map((r) => (
-              <div key={r.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+              <div key={r.id} data-testid="reminder-row" className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{r.title}</div>
                   <div className="text-xs text-muted-foreground">
@@ -115,7 +116,7 @@ export default function Reminders() {
                       : dueLabel(r.due_date, today)}
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" title="Done" onClick={() => act(() => completeReminder(r.id))}>
+                <Button size="icon" variant="ghost" title="Done" data-testid="reminder-complete" onClick={() => act(() => completeReminder(r.id))}>
                   <Check className="h-4 w-4 text-primary" />
                 </Button>
                 <Button size="icon" variant="ghost" title="Snooze 1 day"

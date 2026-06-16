@@ -1,28 +1,36 @@
 /**
  * The capture → recognized-text bridge for myHealth's document scan flow.
  *
- * This is a thin wrapper over `@scandoc/core`'s `Recognizer` seam (the typed plug
- * point where a real local OCR sidecar lands LATER). No OCR engine ships today, so
- * the only recognizer is `nativeTextRecognizer`, the offline identity recognizer:
- *   - text/plain-text PDFs  → decoded UTF-8 text, tagged `native-text` (trusted)
- *   - images / scanned PDFs → empty text, tagged `ocr` (the user pastes/edits the
- *     text in the review UI until a sidecar can read the bytes)
+ * A thin wrapper over `@scandoc/core`'s `Recognizer` seam. Two recognizers exist:
+ *   - `nativeTextRecognizer` — the offline identity recognizer (text/plain-text PDFs
+ *     decode to trusted `native-text`; bytes come back empty + `ocr`).
+ *   - the shared Tesseract OCR engine (`@scandoc/core/ocr`, wired in `./ocr`) — used
+ *     for image / scanned-PDF bytes when in Tauri AND OCR is configured. Basic OCR is
+ *     FREE and fully on-device (WASM in the webview); the AI extraction (OpenMed) is
+ *     the separate paid path.
  *
- * INVARIANT (suite #1/#7): nothing here egresses — bytes stay on-device; this only
- * decodes text we already hold. When the OCR sidecar arrives it swaps in as the
- * Recognizer with no change to callers.
+ * INVARIANT (suite #1/#7): the only network hop is the allowlisted, hash-verified
+ * language-data download (in the OCR engine); document bytes never leave the device.
  */
 import { nativeTextRecognizer, type CaptureKind, type FieldSource } from "@scandoc/core";
+import type { OcrProgress } from "@scandoc/core/ocr";
+import { isTauri } from "@/lib/environment";
 
 export interface Capture {
-  /** Recognized text (empty when bytes need OCR we don't bundle yet). */
+  /** Recognized text (empty when bytes still need OCR / OCR is unavailable). */
   text: string;
   /** Provenance feeding `requiresConfirmation`: native text is trusted, OCR is not. */
   source: FieldSource;
-  /** How the document arrived — drives which recognition path a future sidecar takes. */
+  /** How the document arrived — drives which recognition path is taken. */
   kind: CaptureKind;
-  /** True when the bytes still need OCR (image/scanned PDF, no engine yet). */
+  /** True when the bytes still need OCR (no text recognized). */
   needsOcr: boolean;
+}
+
+/** Per-call recognition options (OCR progress + cancellation). */
+export interface RecognizeOptions {
+  onProgress?: (p: OcrProgress) => void;
+  signal?: AbortSignal;
 }
 
 /** Map a file's MIME (and name fallback) to the recognizer's capture kind. */
@@ -43,22 +51,42 @@ export function captureKindForMime(mime: string | null, name?: string): CaptureK
 const TEXT_LIKE: CaptureKind[] = ["plain-text", "native-text-pdf"];
 
 /**
- * Recognize a picked document to text via the core Recognizer seam. Text-like input
- * is decoded to UTF-8 and passed through; everything else comes back empty + `ocr`
- * (needsOcr) so the review UI can prompt for a paste until the sidecar exists.
+ * Recognize a picked/captured document to text via the core Recognizer seam.
+ *
+ * Text-like input decodes to UTF-8 (trusted). Image / scanned-PDF bytes are OCR'd by
+ * the shared Tesseract engine when in Tauri AND OCR is configured; otherwise they come
+ * back empty + `ocr` so the review UI can prompt for a paste. `needsOcr` is derived
+ * from whether any text was recognized, so a successful OCR clears the paste hint.
  */
 export async function recognizeDocument(
   bytes: Uint8Array,
   mime: string | null,
   name?: string,
+  opts: RecognizeOptions = {},
 ): Promise<Capture> {
   const kind = captureKindForMime(mime, name);
-  const recognizer = nativeTextRecognizer();
+
   if (TEXT_LIKE.includes(kind)) {
     const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-    const out = await recognizer.recognize({ kind, text });
-    return { text: out.text, source: out.source, kind, needsOcr: false };
+    const out = await nativeTextRecognizer().recognize({ kind, text });
+    return { text: out.text, source: out.source, kind, needsOcr: out.text.trim() === "" };
   }
-  const out = await recognizer.recognize({ kind, bytes });
-  return { text: out.text, source: out.source, kind, needsOcr: true };
+
+  const recognizer = await pickBytesRecognizer(opts);
+  const out = await recognizer.recognize({ kind, bytes, langs: ["eng"] });
+  return { text: out.text, source: out.source, kind, needsOcr: out.text.trim() === "" };
+}
+
+/**
+ * Choose the recognizer for image / scanned-PDF bytes: the on-device Tesseract OCR
+ * engine when usable (Tauri + configured), else the no-op native recognizer (browser,
+ * tests, or an unconfigured build) so callers always get the paste fallback. The OCR
+ * engine is dynamically imported so tesseract.js never bloats the entry chunk or the
+ * browser/jsdom path.
+ */
+async function pickBytesRecognizer(opts: RecognizeOptions) {
+  if (!isTauri()) return nativeTextRecognizer();
+  const { ocrConfigured, makeOcrRecognizer } = await import("./ocr");
+  if (!ocrConfigured()) return nativeTextRecognizer();
+  return makeOcrRecognizer({ onProgress: opts.onProgress, signal: opts.signal });
 }

@@ -10,6 +10,7 @@ import Content from "./Content";
 import { useGatingStore } from "@/stores/gating.store";
 import { useContentStore } from "@/stores/content.store";
 import { BAKED_CONTENT_TYPES } from "@/content/registry";
+import { nodeAt, nodeEntries } from "@/content/model";
 
 const ALL_LOCKED = {
   hasProfile: false,
@@ -23,6 +24,7 @@ const setFlags = (over: Partial<typeof ALL_LOCKED>) =>
   (useGatingStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ ...ALL_LOCKED, ...over });
 
 const yoga = BAKED_CONTENT_TYPES.find((t) => t.key === "yoga")!;
+const morning = nodeEntries(nodeAt(yoga.tree!, ["morning"])!)[0]!;
 
 function renderAt(path: string) {
   return render(
@@ -45,13 +47,37 @@ describe("generic Content page", () => {
     setFlags({ isTracker: false });
     renderAt("/content/yoga");
     expect(screen.getByText(/Reach the Tracker tier to unlock Yoga/i)).toBeInTheDocument();
-    expect(screen.queryByText(yoga.samples[0]!.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(morning.name)).not.toBeInTheDocument();
   });
 
-  it("lists a type's baked samples once unlocked", () => {
+  it("shows the subtype breadcrumb dropdown and prompts to pick a section", () => {
     setFlags({ isTracker: true });
     renderAt("/content/yoga");
-    for (const s of yoga.samples) expect(screen.getByText(s.name)).toBeInTheDocument();
+    const select = screen.getByRole("combobox");
+    // Subtypes are offered as next-node options.
+    expect(within(select).getByRole("option", { name: "Morning" })).toBeInTheDocument();
+    expect(within(select).getByRole("option", { name: "Relax" })).toBeInTheDocument();
+    expect(screen.getByText(/Choose a section above to see sequences/i)).toBeInTheDocument();
+    // Entries are not shown until a subtype is chosen.
+    expect(screen.queryByText(morning.name)).not.toBeInTheDocument();
+  });
+
+  it("lists a chosen subtype's entries", () => {
+    setFlags({ isTracker: true });
+    renderAt("/content/yoga");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "morning" } });
+    expect(screen.getByText(morning.name)).toBeInTheDocument();
+  });
+
+  it("opens an entry from a subtype and shows its steps, then navigates back", () => {
+    setFlags({ isTracker: true });
+    renderAt("/content/yoga");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "morning" } });
+    fireEvent.click(screen.getByText(morning.name));
+    expect(screen.getByText(morning.steps[0]!.instruction)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/All sequences/i));
+    // Back on the list for the still-selected subtype.
+    expect(screen.getByText(morning.name)).toBeInTheDocument();
   });
 
   it("renders the second baked type (exercises) from its own folder", () => {
@@ -66,17 +92,30 @@ describe("generic Content page", () => {
     expect(screen.getByText("home")).toBeInTheDocument();
   });
 
-  it("opens an entry and shows its steps, then navigates back", () => {
+  it("lists an available bundle and installs it on click (Add)", () => {
     setFlags({ isTracker: true });
+    useContentStore.getState().setAvailable("yoga", [
+      {
+        bundleId: "restorative",
+        name: "Restorative",
+        version: 1,
+        entries: [
+          { id: "r1", name: "Calm Flow", summary: "s", source: "bundle", bundleId: "restorative", steps: [{ title: "t", instruction: "i" }] },
+        ],
+      },
+    ]);
     renderAt("/content/yoga");
-    const sample = yoga.samples[0]!;
-    fireEvent.click(screen.getByText(sample.name));
-    expect(screen.getByText(sample.steps[0]!.instruction)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/All sequences/i));
-    expect(screen.getByText(yoga.samples[1]!.name)).toBeInTheDocument();
+    // Available but not installed: shown in the bundle manager, entry NOT in the content list yet.
+    expect(screen.getByText("Restorative")).toBeInTheDocument();
+    expect(screen.queryByText("Calm Flow")).not.toBeInTheDocument();
+    // Click "Add" → installed → entry surfaces at the root.
+    const row = screen.getByText("Restorative").closest("li")!;
+    fireEvent.click(within(row).getByTitle(/Add bundle/i));
+    expect(useContentStore.getState().bundlesByType.yoga!.map((b) => b.bundleId)).toEqual(["restorative"]);
+    expect(screen.getByText("Calm Flow")).toBeInTheDocument();
   });
 
-  it("surfaces a downloaded bundle's entries and lets it be removed", () => {
+  it("surfaces a downloaded bundle's entries at the root and lets it be removed", () => {
     setFlags({ isTracker: true });
     useContentStore.getState().upsertBundle("yoga", {
       bundleId: "extra",

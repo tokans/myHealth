@@ -32,8 +32,15 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Local content-OTA dev server (throwaway keys + built signed bundles)
+.dev-content/
+
 # App data captured during dev (never commit user/health data)
 *.db
 *.sqlite
 *.stronghold
 documents/
+
+# demo capture rig — recordings and vendored native driver
+demo/output/
+demo/.bin/

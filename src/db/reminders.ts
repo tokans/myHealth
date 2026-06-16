@@ -16,7 +16,18 @@ export interface Reminder {
   created_at: string;
 }
 
-export async function listOpenReminders(): Promise<Reminder[]> {
+/**
+ * Open reminders. With `profileId` it returns only that person's reminders (the
+ * inbox, scoped to the active profile); with no argument it returns the whole
+ * household's open reminders (the OS-notification sweep covers everyone at once).
+ */
+export async function listOpenReminders(profileId?: number): Promise<Reminder[]> {
+  if (profileId != null) {
+    return query<Reminder>(
+      `SELECT * FROM reminders WHERE status = 'open' AND profile_id = ?1 ORDER BY due_date ASC`,
+      [profileId],
+    );
+  }
   return query<Reminder>(`SELECT * FROM reminders WHERE status = 'open' ORDER BY due_date ASC`);
 }
 
@@ -58,21 +69,18 @@ export async function syncDerivedReminders(desired: DerivedReminder[]): Promise<
   );
 }
 
-/** All MANUAL reminders across profiles (any status) — the import upsert target set. */
-export async function listManualReminders(): Promise<Reminder[]> {
-  return query<Reminder>(
-    `SELECT * FROM reminders WHERE kind = 'manual' ORDER BY due_date ASC, id ASC`,
-  );
-}
-
 /**
- * Reminders shown in the Excel export: every manual reminder (any status) PLUS the
- * still-open auto/derived nudges (water/task/medication), so the sheet mirrors what the
- * user sees. Auto rows are read-only on import (the app regenerates them).
+ * One profile's reminders for the Excel export: every manual reminder (any status) PLUS
+ * the still-open auto/derived nudges (water/task/medication), so the sheet mirrors what
+ * the user sees for that person. Auto rows are read-only on import (the app regenerates
+ * them).
  */
-export async function listRemindersForExport(): Promise<Reminder[]> {
+export async function listRemindersForExport(profileId: number): Promise<Reminder[]> {
   return query<Reminder>(
-    `SELECT * FROM reminders WHERE kind = 'manual' OR status = 'open' ORDER BY due_date ASC, id ASC`,
+    `SELECT * FROM reminders
+       WHERE profile_id = ?1 AND (kind = 'manual' OR status = 'open')
+       ORDER BY due_date ASC, id ASC`,
+    [profileId],
   );
 }
 

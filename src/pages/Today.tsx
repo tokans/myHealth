@@ -35,7 +35,7 @@ export default function Today() {
 
   if (!profile) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="today-root">
         <Greeting name={null} />
         <Card>
           <CardHeader>
@@ -47,7 +47,7 @@ export default function Today() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild>
+            <Button asChild data-testid="today-create-profile">
               <Link to="/profiles">Create my profile</Link>
             </Button>
           </CardContent>
@@ -77,7 +77,7 @@ export default function Today() {
   const doneCount = tasks.filter((t) => t.done).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="today-root">
       <Greeting name={profile.name} />
       <JourneyStrip />
 
@@ -99,7 +99,7 @@ export default function Today() {
             <Button size="sm" variant="outline" onClick={() => bumpWater(-1)} disabled={glasses <= 0}>
               <Minus className="h-4 w-4" />
             </Button>
-            <Button size="sm" onClick={() => bumpWater(1)}>
+            <Button size="sm" onClick={() => bumpWater(1)} data-testid="today-add-water">
               <Plus className="h-4 w-4" /> Add a glass
             </Button>
           </div>
@@ -140,8 +140,9 @@ export default function Today() {
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addNewTask()}
+              data-testid="today-task-input"
             />
-            <Button size="sm" variant="secondary" onClick={addNewTask}>
+            <Button size="sm" variant="secondary" onClick={addNewTask} data-testid="today-add-task">
               Add
             </Button>
           </div>

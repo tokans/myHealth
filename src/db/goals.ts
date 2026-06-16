@@ -53,13 +53,6 @@ export async function createGoal(g: {
   return res.lastInsertId ?? 0;
 }
 
-/** All non-archived goals across profiles — for the Excel export. */
-export async function listAllGoals(): Promise<Goal[]> {
-  return query<Goal>(
-    `SELECT * FROM goals WHERE status != 'archived' ORDER BY profile_id ASC, created_at DESC`,
-  );
-}
-
 /** Update an existing goal (Excel import, update-by-ID path). */
 export async function updateGoal(
   id: number,

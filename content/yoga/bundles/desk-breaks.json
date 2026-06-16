@@ -1,0 +1,30 @@
+{
+  "bundleId": "desk-breaks",
+  "name": "Desk Breaks",
+  "description": "Two-minute resets you can do beside a desk.",
+  "version": 1,
+  "entries": [
+    {
+      "id": "yoga-wrist-reset",
+      "name": "Wrist & Hand Reset",
+      "level": "beginner",
+      "focus": "Mobility",
+      "summary": "Loosen wrists and forearms after typing.",
+      "steps": [
+        { "title": "Wrist Circles", "instruction": "Make slow circles with the wrists, both directions.", "durationSec": 30 },
+        { "title": "Prayer Stretch", "instruction": "Press the palms together and lower the hands to feel a forearm stretch.", "durationSec": 30 }
+      ]
+    },
+    {
+      "id": "yoga-standing-backbend",
+      "name": "Standing Backbend",
+      "level": "beginner",
+      "focus": "Posture",
+      "summary": "Counter a slouch with a gentle standing extension.",
+      "steps": [
+        { "title": "Stand Tall", "instruction": "Feet hip-width, hands on the low back for support.", "durationSec": 20 },
+        { "title": "Gentle Arch", "instruction": "Lift the chest and look slightly up; never crunch the low back.", "durationSec": 25 }
+      ]
+    }
+  ]
+}

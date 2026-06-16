@@ -120,9 +120,10 @@ function buildType(type) {
     }
     return { id: bundle.bundleId, payload: bundle, version: bundle.version };
   });
-  const outDir = join(outRoot, type);
+  const tag = `content-${type}-latest`;
+  const outDir = join(outRoot, tag);
   const n = writeManifest(outDir, entries, revision, keys);
-  console.log(`built type "${type}": ${n} bundle(s) → ${outDir} (upload to tag content-${type}-latest)`);
+  console.log(`built type "${type}": ${n} bundle(s) → ${outDir} (upload its files to release tag ${tag})`);
 }
 
 function buildCatalog() {
@@ -137,9 +138,9 @@ function buildCatalog() {
     if (!t.key) fail("each catalog type needs a key");
     return { id: t.key, payload: t, version: t.order ?? 1 };
   });
-  const outDir = join(outRoot, "catalog");
+  const outDir = join(outRoot, "content-catalog-latest");
   const n = writeManifest(outDir, entries, revision, keys);
-  console.log(`built catalog: ${n} type(s) → ${outDir} (upload to tag content-catalog-latest)`);
+  console.log(`built catalog: ${n} type(s) → ${outDir} (upload its files to release tag content-catalog-latest)`);
 }
 
 function buildAll() {

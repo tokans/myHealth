@@ -70,7 +70,7 @@ export default function Profiles() {
           <h1 className="text-2xl font-semibold">Profiles</h1>
           <p className="text-muted-foreground">You and your family. Everything is scoped per person.</p>
         </div>
-        <Button onClick={() => setShow((s) => !s)}>
+        <Button onClick={() => setShow((s) => !s)} data-testid="profiles-add">
           <UserPlus className="h-4 w-4" /> Add
         </Button>
       </div>
@@ -155,7 +155,7 @@ function ProfileForm({
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="name">Name</Label>
-          <Input id="name" value={f.name} onChange={(e) => set("name", e.target.value)} />
+          <Input id="name" data-testid="profile-name" value={f.name} onChange={(e) => set("name", e.target.value)} />
         </div>
 
         {!hasSelf && (
@@ -170,6 +170,7 @@ function ProfileForm({
             <Label htmlFor="rel">Relationship</Label>
             <select
               id="rel"
+              data-testid="profile-relationship"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={f.relationship}
               onChange={(e) => set("relationship", e.target.value)}
@@ -217,7 +218,7 @@ function ProfileForm({
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={() => f.name.trim() && onSubmit(f)} disabled={!f.name.trim()}>
+          <Button onClick={() => f.name.trim() && onSubmit(f)} disabled={!f.name.trim()} data-testid="profile-save">
             Save
           </Button>
           <Button variant="ghost" onClick={onCancel}>

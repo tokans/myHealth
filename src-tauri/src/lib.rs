@@ -79,6 +79,23 @@ pub fn run() {
             // register this app as an owner (idempotent). Standalone-safe — on any
             // failure it falls back to this app's own data dir.
             let _ = core_bootstrap::ensure_shared_core(app.handle());
+
+            // Demo-capture mode: launch with `--demo` to maximize the window so it
+            // uses the whole available screen. The recorder captures the client
+            // area and normalizes every GIF to a fixed, black-padded canvas, so
+            // framing stays identical regardless of this machine's resolution/DPI.
+            // No effect on a normal launch — the flag is only passed by the demo
+            // rig / manual `tauri dev -- --demo` runs.
+            // Gated to debug + desktop only: this whole block is compiled OUT of
+            // release builds (`tauri build`) and mobile builds, so the shipped
+            // binary contains no demo code. The rig uses a debug binary.
+            #[cfg(all(desktop, debug_assertions))]
+            if std::env::args().any(|a| a == "--demo") {
+                use tauri::Manager;
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.maximize();
+                }
+            }
             Ok(())
         })
         .plugin(tauri_plugin_os::init())

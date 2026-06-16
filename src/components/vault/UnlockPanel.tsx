@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useVaultStore } from "@/stores/vault.store";
+import { DEMO_MODE, DEMO_MASTER_PASSWORD } from "@/lib/demoMode";
 
 /** Gate for vault-backed surfaces: set (first run) or enter the master password. */
 export function UnlockPanel() {
-  const { exists, checked, check, unlock } = useVaultStore();
+  const { exists, checked, unlocked, check, unlock } = useVaultStore();
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState("");
@@ -17,6 +18,17 @@ export function UnlockPanel() {
   useEffect(() => {
     if (!checked) void check();
   }, [checked, check]);
+
+  // Demo-capture mode: create/unlock the vault unattended with the demo master
+  // password so document scenarios record without manual typing. No-op in
+  // normal builds (DEMO_MODE constant-folds to false).
+  useEffect(() => {
+    if (!DEMO_MODE || !checked || unlocked || busy) return;
+    setBusy(true);
+    void unlock(DEMO_MASTER_PASSWORD)
+      .catch(() => setErr("Demo auto-unlock failed."))
+      .finally(() => setBusy(false));
+  }, [checked, unlocked, busy, unlock]);
 
   const creating = !exists;
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FolderLock,
   Upload,
@@ -10,6 +10,7 @@ import {
   Wand2,
   UserPlus,
   Check,
+  Camera,
 } from "lucide-react";
 import { getCommonBaked } from "sharedcorelib/masters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,7 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FeatureGuard } from "@/components/feature/FeatureGuard";
 import { UnlockPanel } from "@/components/vault/UnlockPanel";
-import { isTauri } from "@/lib/environment";
+import { isTauri, isMobile } from "@/lib/environment";
+import { demoSaveName } from "@/lib/demoMode";
+import { useSettingsStore } from "@/stores/settings.store";
 import { useVaultStore } from "@/stores/vault.store";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useProfileStore } from "@/stores/profile.store";
@@ -126,10 +129,10 @@ function Vaulted() {
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" onClick={() => setAdding({ type: "insurance", autoScan: true })}>
+          <Button variant="outline" onClick={() => setAdding({ type: "insurance", autoScan: true })} data-testid="documents-scan-insurance">
             <ScanLine className="h-4 w-4" /> Scan insurance card
           </Button>
-          <Button onClick={() => setAdding({ autoScan: false })}>
+          <Button onClick={() => setAdding({ autoScan: false })} data-testid="documents-add">
             <Upload className="h-4 w-4" /> Add
           </Button>
         </div>
@@ -181,10 +184,17 @@ function Vaulted() {
 
 async function exportDoc(d: DocumentRow) {
   const bytes = await vault.readBlob(d.file_name);
+  const { writeFile } = await import("@tauri-apps/plugin-fs");
+  // Demo mode: skip the native dialog and write to the app-data dir unattended.
+  const demoName = demoSaveName(d.title);
+  if (demoName) {
+    const { BaseDirectory } = await import("@tauri-apps/plugin-fs");
+    await writeFile(demoName, bytes, { baseDir: BaseDirectory.AppData });
+    return;
+  }
   const { save } = await import("@tauri-apps/plugin-dialog");
   const path = await save({ defaultPath: d.title });
   if (!path) return;
-  const { writeFile } = await import("@tauri-apps/plugin-fs");
   await writeFile(path, bytes);
 }
 
@@ -235,6 +245,14 @@ function AddDocument({
   const [parsed, setParsed] = useState<ParsedDocument | null>(null);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [saving, setSaving] = useState(false);
+  const cameraScan = useSettingsStore((s) => s.cameraScan);
+  const [onPhone, setOnPhone] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // The camera button is offered only on a phone AND only when the user opted in.
+  useEffect(() => {
+    void isMobile().then(setOnPhone);
+  }, []);
 
   const parseKind = EXTRACTABLE[docType];
   const hasSelf = existingProfiles.some((p) => p.is_self);
@@ -263,14 +281,8 @@ function AddDocument({
     }
   }
 
-  async function pickFile() {
-    const { open } = await import("@tauri-apps/plugin-dialog");
-    const path = await open({ multiple: false });
-    if (!path || typeof path !== "string") return;
-    const { readFile } = await import("@tauri-apps/plugin-fs");
-    const bytes = await readFile(path);
-    const name = path.split(/[\\/]/).pop() ?? "document";
-    const mime = guessMime(name);
+  /** Ingest picked/captured bytes: stage them, recognize text, auto-extract on scan. */
+  async function acceptDocument(bytes: Uint8Array, name: string, mime: string | null) {
     setPending({ bytes, name, mime });
     if (!title) setTitle(name);
 
@@ -284,6 +296,30 @@ function AddDocument({
     if (intent.autoScan && parseKind && cap.text.trim()) {
       runExtract(cap.text, parseKind, cap.source);
     }
+  }
+
+  async function pickFile() {
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const path = await open({ multiple: false });
+    if (!path || typeof path !== "string") return;
+    const { readFile } = await import("@tauri-apps/plugin-fs");
+    const bytes = await readFile(path);
+    const name = path.split(/[\\/]/).pop() ?? "document";
+    await acceptDocument(bytes, name, guessMime(name));
+  }
+
+  /**
+   * Mobile camera capture via the webview's native file input (`capture` opens the
+   * camera on Android/iOS) — no Rust plugin, and the photo bytes never leave the
+   * device: they flow straight into the same encrypt-on-save path as a picked file.
+   */
+  async function onCameraCapture(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-capturing the same-named file
+    if (!file) return;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const name = file.name || `scan-${docType}.jpg`;
+    await acceptDocument(bytes, name, file.type || guessMime(name));
   }
 
   function setMember(i: number, patch: Partial<MemberRow>) {
@@ -346,13 +382,30 @@ function AddDocument({
       </CardHeader>
       <CardContent className="space-y-4">
         {!pending ? (
-          <div className="flex gap-2">
-            <Button onClick={pickFile}>
+          <div className="flex flex-wrap gap-2" data-testid="documents-add-panel">
+            <Button onClick={pickFile} data-testid="documents-choose-file">
               <Upload className="h-4 w-4" /> Choose file
             </Button>
+            {onPhone && cameraScan && (
+              <Button
+                variant="secondary"
+                onClick={() => cameraInputRef.current?.click()}
+                data-testid="documents-scan-camera"
+              >
+                <Camera className="h-4 w-4" /> Scan with camera
+              </Button>
+            )}
             <Button variant="ghost" onClick={onCancel}>
               Cancel
             </Button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => void onCameraCapture(e)}
+            />
           </div>
         ) : (
           <>

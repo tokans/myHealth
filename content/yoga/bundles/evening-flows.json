@@ -1,0 +1,31 @@
+{
+  "bundleId": "evening-flows",
+  "name": "Evening Flows",
+  "description": "Slower sequences to wind down after the day.",
+  "version": 1,
+  "entries": [
+    {
+      "id": "yoga-candlelight-stretch",
+      "name": "Candlelight Stretch",
+      "level": "beginner",
+      "focus": "Relaxation",
+      "summary": "A short, soothing stretch to release the shoulders and hips before bed.",
+      "steps": [
+        { "title": "Neck Release", "instruction": "Sit tall and gently drop one ear toward the shoulder; switch sides.", "durationSec": 30 },
+        { "title": "Seated Side Bend", "instruction": "Reach one arm overhead and lean to the side, breathing into the ribs.", "durationSec": 40 },
+        { "title": "Reclined Butterfly", "instruction": "Lie back, soles together, knees wide; rest and breathe.", "durationSec": 90 }
+      ]
+    },
+    {
+      "id": "yoga-legs-up-wall",
+      "name": "Legs-Up-the-Wall",
+      "level": "beginner",
+      "focus": "Recovery",
+      "summary": "A single restorative pose to calm the nervous system.",
+      "steps": [
+        { "title": "Set Up", "instruction": "Sit beside a wall, swing the legs up, and lie back with arms relaxed.", "durationSec": 30 },
+        { "title": "Rest", "instruction": "Stay and breathe slowly; let the legs be heavy.", "durationSec": 180 }
+      ]
+    }
+  ]
+}

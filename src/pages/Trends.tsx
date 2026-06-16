@@ -72,6 +72,7 @@ function TrendsInner() {
               <Label htmlFor="trend-kind">Metric</Label>
               <select
                 id="trend-kind"
+                data-testid="trends-kind"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={kind}
                 onChange={(e) => setKind(e.target.value)}

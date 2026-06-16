@@ -18,6 +18,7 @@ import { loadRegistry, type SqlDb } from "sharedcorelib/db";
 import { getDb } from "@/db/client";
 import { openSharedDbAdapter } from "@/db/sharedDb";
 import { APP_ID } from "@/db/healthFacet";
+import { demoSaveName } from "@/lib/demoMode";
 
 /** Adapt the app's own Tauri-SQL handle (`myhealth.db`) to the lib's `SqlDb`. */
 async function appDbAdapter(): Promise<SqlDb> {
@@ -49,8 +50,15 @@ export async function buildExcelBackup(): Promise<ExcelBackup> {
 
 /** Native save handler for `BackupPanel` (Tauri dialog + fs). */
 export async function saveBackupFile(bytes: Uint8Array, fileName: string): Promise<void> {
-  const { save } = await import("@tauri-apps/plugin-dialog");
   const { writeFile } = await import("@tauri-apps/plugin-fs");
+  // Demo mode: skip the native dialog and write to the app-data dir unattended.
+  const demoName = demoSaveName(fileName);
+  if (demoName) {
+    const { BaseDirectory } = await import("@tauri-apps/plugin-fs");
+    await writeFile(demoName, bytes, { baseDir: BaseDirectory.AppData });
+    return;
+  }
+  const { save } = await import("@tauri-apps/plugin-dialog");
   const path = await save({
     defaultPath: fileName,
     filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],

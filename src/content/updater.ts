@@ -25,11 +25,26 @@ const sync = createContentSync({
   pubkeyHex: (import.meta.env.VITE_CONTENT_PUBKEY as string | undefined) ?? "",
   transportKeyB64: (import.meta.env.VITE_CONTENT_TRANSPORT_KEY as string | undefined) ?? "",
   appVersion: "0.1.0",
+  // DEV-only browser fallback so "Check now" works in the `npm run dev` preview
+  // (no Tauri): plain `fetch` against the local content server (`npm run content:dev`).
+  // Inside Tauri the core ignores this and uses the Tauri-HTTP path.
+  fetchBytes: import.meta.env.DEV
+    ? async (url: string) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`fetch ${url} -> ${res.status}`);
+        return new Uint8Array(await res.arrayBuffer());
+      }
+    : undefined,
 });
 
 /** Whether OTA content sync is configured (signing keys present). */
 export function contentUpdatesConfigured(): boolean {
   return sync.isConfigured();
+}
+
+/** Whether sync can actually run now (configured AND in Tauri, or the dev browser fallback). */
+export function contentSyncAvailable(): boolean {
+  return sync.canRun();
 }
 
 /** Run one daily content sync (catalog + per-type bundles). Best-effort, throttled. */

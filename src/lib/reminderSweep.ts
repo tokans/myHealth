@@ -57,12 +57,27 @@ export async function syncHabitReminders(): Promise<void> {
 export async function runHabitReminderSweep(): Promise<number> {
   if (!isTauri()) return 0;
   const today = localToday();
+  // The sweep notifies across the whole household, so prefix each reminder with the
+  // person it's for ("Asha: Drink water …") when there's more than one profile — that
+  // way the single OS notification says for whom each nudge is meant. With only one
+  // profile it's obviously self, so we leave titles unadorned. (We map a copy; the
+  // stored reminder title and `markFired` id are untouched.)
+  const profiles = await listProfiles();
+  const nameById = new Map(profiles.map((p) => [p.id, p.name]));
+  const multi = profiles.length > 1;
   return runReminderSweep({
     today,
     syncDerived: async () => {
       await syncDerivedReminders(await gatherDesired(today));
     },
-    listOpen: () => listOpenReminders(),
+    listOpen: async () => {
+      const open = await listOpenReminders();
+      if (!multi) return open;
+      return open.map((r) => {
+        const name = r.profile_id != null ? nameById.get(r.profile_id) : undefined;
+        return name ? { ...r, title: `${name}: ${r.title}` } : r;
+      });
+    },
     markFired: (id, t) => markReminderFired(id as number, t),
   });
 }

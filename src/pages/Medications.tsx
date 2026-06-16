@@ -77,8 +77,8 @@ function MedicationsInner() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ExcelButtons spec={FEATURE_EXCEL.medications!} onImported={load} />
-          <Button onClick={() => setShow((s) => !s)}>
+          <ExcelButtons spec={FEATURE_EXCEL.medications!} profileId={profile?.id} profileName={profile?.name} onImported={load} />
+          <Button onClick={() => setShow((s) => !s)} data-testid="medications-add">
             <Plus className="h-4 w-4" /> Add
           </Button>
         </div>
@@ -143,11 +143,11 @@ function MedFormCard({ onSubmit, onCancel }: { onSubmit: (f: MedForm) => void; o
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="drug">Drug</Label>
-            <Input id="drug" value={f.drug} onChange={(e) => set("drug", e.target.value)} />
+            <Input id="drug" data-testid="med-drug" value={f.drug} onChange={(e) => set("drug", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="strength">Strength</Label>
-            <Input id="strength" placeholder="500 mg" value={f.strength} onChange={(e) => set("strength", e.target.value)} />
+            <Input id="strength" data-testid="med-strength" placeholder="500 mg" value={f.strength} onChange={(e) => set("strength", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="form">Form</Label>
@@ -155,7 +155,7 @@ function MedFormCard({ onSubmit, onCancel }: { onSubmit: (f: MedForm) => void; o
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="sched">Schedule</Label>
-            <select id="sched" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            <select id="sched" data-testid="med-schedule" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={f.schedule} onChange={(e) => set("schedule", e.target.value)}>
               {SCHEDULES.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -170,7 +170,7 @@ function MedFormCard({ onSubmit, onCancel }: { onSubmit: (f: MedForm) => void; o
           <Input id="presc" value={f.prescriber} onChange={(e) => set("prescriber", e.target.value)} />
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => f.drug.trim() && onSubmit(f)} disabled={!f.drug.trim()}>
+          <Button onClick={() => f.drug.trim() && onSubmit(f)} disabled={!f.drug.trim()} data-testid="med-save">
             Save
           </Button>
           <Button variant="ghost" onClick={onCancel}>

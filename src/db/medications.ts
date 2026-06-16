@@ -55,11 +55,6 @@ export async function createMedication(m: {
   return res.lastInsertId ?? 0;
 }
 
-/** Every medication across profiles (active + inactive) — for the Excel export. */
-export async function listAllMedications(): Promise<Medication[]> {
-  return query<Medication>(`SELECT * FROM medications ORDER BY profile_id ASC, drug ASC`);
-}
-
 /** Editable medication fields shared by the Excel create/update paths. */
 export interface MedicationFields {
   profile_id: number;

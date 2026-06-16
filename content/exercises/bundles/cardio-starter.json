@@ -1,0 +1,20 @@
+{
+  "bundleId": "cardio-starter",
+  "name": "Cardio Starter",
+  "description": "Low-impact cardio you can do at home.",
+  "version": 1,
+  "entries": [
+    {
+      "id": "ex-living-room-cardio",
+      "name": "Living-Room Cardio",
+      "level": "beginner",
+      "focus": "Cardio",
+      "summary": "A gentle, joint-friendly circuit to raise the heart rate. Repeat twice.",
+      "steps": [
+        { "title": "March in Place", "instruction": "Lift the knees and pump the arms at a steady pace.", "durationSec": 60 },
+        { "title": "Step Touch", "instruction": "Step side to side, tapping the floor; keep it light.", "durationSec": 45 },
+        { "title": "Standing Knee Lifts", "instruction": "Alternate lifting each knee toward the opposite elbow.", "durationSec": 45 }
+      ]
+    }
+  ]
+}

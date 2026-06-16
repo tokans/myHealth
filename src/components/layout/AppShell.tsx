@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, HeartPulse, Settings as SettingsIcon } from "lucide-react";
+import { Heart, HeartPulse, LayoutGrid } from "lucide-react";
 import { SuiteShell, type SuiteNavItem, type SuiteAction } from "sharedcorelib/ui";
 import { cn } from "@/lib/utils";
 import { buildNav, type NavItem } from "@/lib/nav";
@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ...(showDonate
       ? [{ key: "donate", label: "Donate to support", icon: Heart, onSelect: () => void openDonatePage(), tone: "primary" as const }]
       : []),
-    { key: "settings", label: "Settings", icon: SettingsIcon, to: "/settings" },
+    { key: "apps", label: "Apps", icon: LayoutGrid, to: "/apps" },
   ];
 
   return (

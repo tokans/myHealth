@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("@/lib/environment", () => ({ isTauri: vi.fn(() => true) }));
-vi.mock("@/db/client", () => ({ query: vi.fn() }));
+vi.mock("@/db/client", () => ({ query: vi.fn(), execute: vi.fn() }));
 
 import { isTauri } from "@/lib/environment";
-import { query } from "@/db/client";
+import { query, execute } from "@/db/client";
 import { useSettingsStore } from "./settings.store";
 
 const DEFAULTS = {
@@ -12,6 +12,7 @@ const DEFAULTS = {
   locale: "en",
   dateFormat: "DD/MM/YYYY",
   theme: "system",
+  cameraScan: false,
 } as const;
 
 beforeEach(() => {
@@ -63,5 +64,33 @@ describe("useSettingsStore.hydrate", () => {
     vi.mocked(query).mockRejectedValue(new Error("db down"));
     await useSettingsStore.getState().hydrate();
     expect(useSettingsStore.getState().loaded).toBe(true);
+  });
+
+  it("hydrates cameraScan from the camera_scan flag ('1' => true)", async () => {
+    vi.mocked(query).mockResolvedValue([{ key: "camera_scan", value: "1" }]);
+    await useSettingsStore.getState().hydrate();
+    expect(useSettingsStore.getState().cameraScan).toBe(true);
+  });
+
+  it("defaults cameraScan to false when the flag is absent", async () => {
+    vi.mocked(query).mockResolvedValue([]);
+    await useSettingsStore.getState().hydrate();
+    expect(useSettingsStore.getState().cameraScan).toBe(false);
+  });
+});
+
+describe("useSettingsStore.setCameraScan", () => {
+  it("updates state and upserts the camera_scan flag", async () => {
+    vi.mocked(execute).mockResolvedValue({ rowsAffected: 1, lastInsertId: 0 });
+    await useSettingsStore.getState().setCameraScan(true);
+    expect(useSettingsStore.getState().cameraScan).toBe(true);
+    expect(execute).toHaveBeenCalledWith(expect.stringContaining("camera_scan"), ["1"]);
+  });
+
+  it("persists the off state and survives a write failure", async () => {
+    vi.mocked(execute).mockRejectedValue(new Error("db down"));
+    await useSettingsStore.getState().setCameraScan(false);
+    expect(useSettingsStore.getState().cameraScan).toBe(false);
+    expect(execute).toHaveBeenCalledWith(expect.any(String), ["0"]);
   });
 });

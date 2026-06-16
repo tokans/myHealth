@@ -1,0 +1,5 @@
+# Tracked gh-pages assets shipped verbatim by the release workflow.
+# Drop the recorded marketing video here as `demo.mp4` (see ../../../DEMO.md):
+#   .\demo\make-video.ps1        # records + composes + copies it here
+# Then commit demo.mp4 — the landing page plays assets/demo.mp4 and the
+# release workflow copies this folder to the gh-pages branch.

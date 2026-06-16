@@ -26,12 +26,13 @@ set "VERSION=v0.0.0-preview"
 set "REPO=tokans/myHealth"
 set "RELEASE_URL=https://github.com/tokans/myHealth/releases/tag/v0.0.0-preview"
 set "LATEST_URL=https://github.com/tokans/myHealth/releases/latest"
+set "APK_URL=https://github.com/tokans/myHealth/releases/latest"
 
 echo === Rendering template with sample values ===
 REM Read/write as UTF-8 explicitly via .NET. Windows PowerShell 5.1's
 REM Get-Content/Set-Content would otherwise read this no-BOM UTF-8 file as
 REM ANSI and mojibake every emoji.
-powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('%~dp0index.template.html',[Text.Encoding]::UTF8).Replace('__VERSION__','%VERSION%').Replace('__REPO__','%REPO%').Replace('__RELEASE_URL__','%RELEASE_URL%').Replace('__LATEST_URL__','%LATEST_URL%'); [IO.File]::WriteAllText('%~dp0%OUT%\index.html',$t,(New-Object Text.UTF8Encoding($false)))"
+powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('%~dp0index.template.html',[Text.Encoding]::UTF8).Replace('__VERSION__','%VERSION%').Replace('__REPO__','%REPO%').Replace('__RELEASE_URL__','%RELEASE_URL%').Replace('__LATEST_URL__','%LATEST_URL%').Replace('__APK_URL__','%APK_URL%'); [IO.File]::WriteAllText('%~dp0%OUT%\index.html',$t,(New-Object Text.UTF8Encoding($false)))"
 if errorlevel 1 ( echo [ERROR] Failed to render template. & pause & exit /b 1 )
 
 copy /y sample-release-notes.md "%OUT%\release-notes.md" >nul

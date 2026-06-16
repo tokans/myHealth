@@ -26,7 +26,8 @@ version input.)
 
 | File | Purpose |
 | --- | --- |
-| `index.template.html` | The landing page. **Edit this to redesign the site.** Tokens `__VERSION__`, `__REPO__`, `__RELEASE_URL__`, `__LATEST_URL__` are substituted at publish time. |
+| `index.template.html` | The landing page. **Edit this to redesign the site.** Tokens `__VERSION__`, `__REPO__`, `__RELEASE_URL__`, `__LATEST_URL__`, and `__APK_URL__` (direct Android `.apk` download — falls back to the latest-release page when no apk was built) are substituted at publish time. |
+| `assets/` | Tracked page assets shipped to the site as-is — drop the recorded `demo.mp4` here (see `DEMO.md`). |
 | `serve.py` | Loopback static server used by `preview.bat` (auto-picks a free port). |
 | `preview.bat` | Renders the template with sample values and serves it locally so you can design it. |
 | `sample-release-notes.md` | Stand-in release notes used only by `preview.bat`. |

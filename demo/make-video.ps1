@@ -97,6 +97,21 @@ if (-not $NoRecord) {
 if ($wantMarketing) { Invoke-Step "Editing the marketing video" { npm run demo:video:marketing } }
 if ($wantTutorial)  { Invoke-Step "Editing the tutorial video"  { npm run demo:video:tutorial } }
 
+# --- publish the marketing cut to the gh-pages assets ------------------------
+# The landing page (.github/pages/index.template.html) plays assets/demo.mp4,
+# and the release workflow ships .github/pages/assets/ verbatim to gh-pages. So
+# copy the finished marketing montage there; commit it to publish on next release.
+if ($wantMarketing) {
+  $marketing = Join-Path $PSScriptRoot "output\video\marketing.mp4"
+  if (Test-Path $marketing) {
+    $pagesAssets = Join-Path $repo ".github\pages\assets"
+    if (-not (Test-Path $pagesAssets)) { New-Item -ItemType Directory -Path $pagesAssets | Out-Null }
+    Copy-Item $marketing (Join-Path $pagesAssets "demo.mp4") -Force
+    Write-Host "→ Published landing-page video: .github\pages\assets\demo.mp4" -ForegroundColor Cyan
+    Write-Host "  Commit it to ship the advert on the next release." -ForegroundColor DarkGray
+  }
+}
+
 # --- done ---------------------------------------------------------------------
 $outDir = Join-Path $PSScriptRoot "output\video"
 Write-Host ""

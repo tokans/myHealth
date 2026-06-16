@@ -12,6 +12,8 @@
      __REPO__          e.g. tokans/myHealth
      __RELEASE_URL__   link to this version's release page
      __LATEST_URL__    link to the "latest release" redirect
+     __APK_URL__       direct download for this release's Android .apk
+                       (falls back to __LATEST_URL__ when no apk was built)
 
   The current release's notes are NOT baked in: the page fetches the sibling
   release-notes.md (written by the workflow) and renders it client-side.
@@ -77,6 +79,8 @@
     .btn.primary:hover { text-decoration: none; filter: brightness(1.05); }
     .btn.ghost { border-color: var(--border); color: var(--text); }
     .btn.ghost:hover { text-decoration: none; border-color: var(--muted); }
+    .btn.android { border-color: var(--border); color: var(--text); background: var(--panel-2); }
+    .btn.android:hover { text-decoration: none; border-color: var(--brand); }
     section { padding: 64px 0; }
     section h2 { font-size: clamp(24px, 4vw, 34px); margin: 0 0 10px; letter-spacing: -.01em; }
     section .lead { color: var(--muted); margin: 0 0 36px; max-width: 640px; }
@@ -130,6 +134,7 @@
         no server — your health data never leaves your device.</p>
       <div class="cta">
         <a class="btn primary" href="__LATEST_URL__">⬇ Download for your platform</a>
+        <a class="btn android" href="__APK_URL__">🤖 Get the Android APK</a>
         <a class="btn ghost" href="https://github.com/__REPO__">View on GitHub</a>
       </div>
     </div>
@@ -173,11 +178,14 @@
         <tbody>
           <tr><td>Windows</td><td><code>.msi</code> / <code>.exe</code> installer</td></tr>
           <tr><td>macOS (Intel + Apple Silicon)</td><td>universal <code>.dmg</code></td></tr>
-          <tr><td>Android (experimental)</td><td><code>.apk</code> (sideload) · <code>.aab</code></td></tr>
+          <tr><td>Android (arm64, experimental)</td><td><a href="__APK_URL__"><code>.apk</code> — direct download</a> (sideload) · <code>.aab</code> on the <a href="__RELEASE_URL__">release page</a></td></tr>
           <tr><td>iOS (experimental)</td><td>unsigned build</td></tr>
         </tbody>
       </table>
-      <p style="margin-top:18px"><a class="btn primary" href="__LATEST_URL__">⬇ Go to the latest release</a></p>
+      <p style="margin-top:18px">
+        <a class="btn primary" href="__LATEST_URL__">⬇ Go to the latest release</a>
+        <a class="btn android" href="__APK_URL__" style="margin-left:10px">🤖 Download Android APK</a>
+      </p>
       <p style="color:var(--muted); font-size:14px; margin-top:10px">Mobile builds are experimental and unsigned: the Android
         <code>.apk</code> is debug-signed (sideloadable, not production) and iOS is not yet code-signed.</p>
     </div>

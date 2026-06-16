@@ -632,6 +632,14 @@ jobs:
 
           NOTES="$(gh release view "$VERSION" --repo "$PUBLISH_REPO" --json body --jq .body)"
 
+          # Direct download URL for this release's Android .apk asset, so the
+          # landing page can link the APK straight away. Falls back to the
+          # latest-release page when no apk was built (Android is continue-on-error).
+          APK_URL="$(gh release view "$VERSION" --repo "$PUBLISH_REPO" --json assets \
+            --jq 'first(.assets[] | select(.name | endswith(".apk")) | .url) // empty')"
+          [ -z "$APK_URL" ] && APK_URL="$LATEST_URL"
+          echo "APK download URL: $APK_URL"
+
           # Clone the existing gh-pages branch so manually-added assets survive;
           # create it the first time.
           if git clone --depth 1 --branch gh-pages "$AUTH_URL" site 2>/dev/null; then
@@ -660,6 +668,7 @@ jobs:
             -e "s|__REPO__|${PUBLISH_REPO}|g" \
             -e "s|__RELEASE_URL__|${RELEASE_URL}|g" \
             -e "s|__LATEST_URL__|${LATEST_URL}|g" \
+            -e "s|__APK_URL__|${APK_URL}|g" \
             "${GITHUB_WORKSPACE}/.github/pages/index.template.html" > index.html
 
           git config user.name "github-actions[bot]"

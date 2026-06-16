@@ -139,12 +139,22 @@ it touches to the relevant component. `data-testid` is kebab-case and scoped:
 .\demo\make-video.ps1 -NoRecord        # re-edit from existing clips (fast)
 ```
 
-- **Marketing cut** — `demo/edit/marketing.edl.ts`: a declarative edit-decision
-  list (clips sliced from each scenario MP4 with lower-third captions + title
-  cards), composed by `@mydemo/core`'s `compose()`. Every `in`/`out` is in
+- **Marketing cut (the ~60s advert)** — `demo/edit/marketing.edl.ts`: a
+  declarative edit-decision list (clips sliced from each scenario MP4 with
+  burned-in **lower-third captions + full-screen title cards** — the text
+  overlays — bookended by an **"Now on Android, too"** beat and a privacy
+  close), composed by `@mydemo/core`'s `compose()`. Every `in`/`out` is in
   source-seconds and freely editable — re-run `npm run demo:video:marketing` to
-  recompose in seconds (no re-recording). The shipped timings are **starting
-  guesses**; eyeball the payoff moment in each `demo/output/<id>.mp4` and adjust.
+  recompose in seconds (no re-recording). The windows are tuned for a ~60s total
+  but remain **starting guesses**; eyeball the payoff moment in each
+  `demo/output/<id>.mp4` and adjust.
+
+  > **Publishing to the website.** `make-video.ps1` copies the finished
+  > `demo/output/video/marketing.mp4` to `.github/pages/assets/demo.mp4`. That
+  > folder ships verbatim to the `gh-pages` branch on the next release, and the
+  > landing page plays `assets/demo.mp4` in its "See it in action" section — so
+  > just **commit `.github/pages/assets/demo.mp4`** to publish the advert. (Until
+  > a video exists the page hides that section automatically.)
 - **Tutorial** — the single-take `20-full-tutorial` recording, captioned from its
   `h.mark()` strings (burned in as subtitles) and scored, via
   `npm run demo:video:tutorial`.

@@ -1,9 +1,12 @@
 import Database from "@tauri-apps/plugin-sql";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/lib/environment";
-import { registerSchemas, type SqlDb } from "sharedcorelib/db";
+import { registerSchemas, registerAuxMigrations, type SqlDb } from "sharedcorelib/db";
 import { createIceStore, type IceStore } from "sharedcorelib/ice";
 import { MYHEALTH_SCHEMAS } from "./schemas";
+import { APP_TABLE_SCHEMAS } from "./appTables";
+import { MYHEALTH_AUX_MIGRATIONS } from "./auxMigrations";
+import { APP_ID } from "./healthFacet";
 import { createHealthPeople, type HealthPeople } from "./entities";
 import { createHealthTimeline, type HealthTimeline } from "./sharedTimeline";
 import {
@@ -64,7 +67,12 @@ export async function initSharedDb(): Promise<void> {
   if (!isTauri()) return;
   try {
     const sql = adapter(await openSharedDb());
+    // Common spine + ICE + facet descriptors, then myHealth's own app tables (the
+    // descriptor-ized legacy tables), then the aux-SQL steps (indexes/triggers/CHECK
+    // guards) — order matters: aux SQL references tables registerSchemas created.
     await registerSchemas(sql, MYHEALTH_SCHEMAS);
+    await registerSchemas(sql, APP_TABLE_SCHEMAS);
+    await registerAuxMigrations(sql, APP_ID, MYHEALTH_AUX_MIGRATIONS);
     await createIceStore(sql).ensure();
     // Shared-entity spine (person/event/document) + myHealth's medical facet.
     await createHealthPeople(sql).ensure();

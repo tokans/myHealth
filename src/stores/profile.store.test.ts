@@ -13,6 +13,7 @@ function profile(p: Partial<Profile> & { id: number; name: string }): Profile {
   return {
     relationship: null,
     is_self: 0,
+    member_class: null,
     dob: null,
     sex: "unspecified",
     blood_group: null,

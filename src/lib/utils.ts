@@ -1,4 +1,4 @@
-export { cn } from "sharedcorelib/ui";
+export { cn } from "sharedcorelib/ui/cn";
 
 /** Local 'YYYY-MM-DD' — the day boundary used for tasks, water, reminders, tiers. */
 export function localToday(): string {

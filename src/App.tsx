@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { isTauri } from "@/lib/environment";
 import { recordLaunch } from "@/db/usage";
 import { initSharedDb } from "@/db/sharedDb";
+import { runConsolidation } from "@/db/consolidate";
 import { runHabitReminderSweep } from "@/lib/reminderSweep";
 import { runContentSync } from "@/content/updater";
 import { maybeSeedDev } from "@/dev/seed";
@@ -45,13 +46,20 @@ export default function App() {
   useEffect(() => {
     (async () => {
       if (isTauri()) {
+        // Suite-DB tables must exist before any read/write: register schemas + aux SQL +
+        // common ICE card, THEN run the one-time legacy myhealth.db → suite.db migration
+        // (idempotent; deletes the legacy file after verify), THEN record the launch.
+        await initSharedDb();
+        try {
+          await runConsolidation();
+        } catch (e) {
+          console.error("consolidation failed (deferred):", e);
+        }
         try {
           await recordLaunch();
         } catch (e) {
           console.error("recordLaunch failed:", e);
         }
-        // Register schemas + ensure the shared common ICE card table (best-effort).
-        void initSharedDb();
         // Dev/QA only: populate dummy data when ?seed=… / VITE_SEED is set (no-op otherwise).
         try {
           await maybeSeedDev();

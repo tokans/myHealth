@@ -64,7 +64,7 @@ describe("syncDerivedReminders", () => {
     expect(mockExecute).toHaveBeenCalledTimes(3);
 
     const [up1Sql, up1Params] = mockExecute.mock.calls[0];
-    expect(up1Sql).toContain("INSERT INTO reminders");
+    expect(up1Sql).toContain("INSERT INTO myhealth_reminders");
     expect(up1Sql).toContain("ON CONFLICT(dedupe_key)");
     expect(up1Params).toEqual([1, "task", "k1", "T1", "d1", "2026-06-08"]);
 
@@ -72,7 +72,7 @@ describe("syncDerivedReminders", () => {
     expect(up2Params).toEqual([null, "water", "k2", "T2", null, "2026-06-08"]);
 
     const [pruneSql, pruneParams] = mockExecute.mock.calls[2];
-    expect(pruneSql).toContain("DELETE FROM reminders");
+    expect(pruneSql).toContain("DELETE FROM myhealth_reminders");
     expect(pruneSql).toContain("dedupe_key NOT IN (?1, ?2)");
     expect(pruneParams).toEqual(["k1", "k2"]);
   });
@@ -82,7 +82,7 @@ describe("syncDerivedReminders", () => {
     await syncDerivedReminders([]);
     expect(mockExecute).toHaveBeenCalledTimes(1);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("DELETE FROM reminders WHERE kind = 'derived' AND status = 'open'");
+    expect(sql).toContain("DELETE FROM myhealth_reminders WHERE kind = 'derived' AND status = 'open'");
     expect(sql).not.toContain("NOT IN");
     expect(params).toBeUndefined();
   });
@@ -94,7 +94,7 @@ describe("createManualReminder", () => {
     const id = await createManualReminder({ title: "Call doctor", due_date: "2026-06-10" });
     expect(id).toBe(8);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO reminders");
+    expect(sql).toContain("INSERT INTO myhealth_reminders");
     expect(sql).toContain("'manual'");
     expect(params).toEqual([null, "Call doctor", null, "2026-06-10"]);
   });

@@ -18,7 +18,7 @@ describe("listGoals", () => {
     mockQuery.mockResolvedValue([] as any);
     await listGoals(4);
     const [sql, params] = mockQuery.mock.calls[0];
-    expect(sql).toContain("FROM goals");
+    expect(sql).toContain("FROM myhealth_goals");
     expect(sql).toContain("status != 'archived'");
     expect(sql).toContain("ORDER BY created_at DESC");
     expect(params).toEqual([4]);
@@ -31,7 +31,7 @@ describe("createGoal", () => {
     const id = await createGoal({ profile_id: 1, kind: "weight", title: "Lose 5kg" });
     expect(id).toBe(10);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO goals");
+    expect(sql).toContain("INSERT INTO myhealth_goals");
     expect(params).toEqual([1, "weight", "Lose 5kg", null, null, null, null, "decrease", null]);
   });
 

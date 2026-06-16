@@ -1,4 +1,5 @@
 import { execute, query } from "./client";
+import { T } from "./tables";
 import { localToday } from "@/lib/utils";
 
 export interface DailyTask {
@@ -27,7 +28,7 @@ export function appliesOn(recurrence: string, weekday: number): boolean {
 
 export async function listTasks(profileId: number): Promise<DailyTask[]> {
   return query<DailyTask>(
-    `SELECT * FROM daily_tasks WHERE profile_id = ?1 AND active = 1 ORDER BY created_at ASC`,
+    `SELECT * FROM ${T.dailyTasks} WHERE profile_id = ?1 AND active = 1 ORDER BY created_at ASC`,
     [profileId],
   );
 }
@@ -37,7 +38,7 @@ export async function listTasksForToday(profileId: number, day = localToday()): 
   const weekday = new Date(day + "T00:00:00").getDay();
   const tasks = await listTasks(profileId);
   const done = await query<{ task_id: number }>(
-    `SELECT task_id FROM task_completions WHERE done_on = ?1`,
+    `SELECT task_id FROM ${T.taskCompletions} WHERE done_on = ?1`,
     [day],
   );
   const doneSet = new Set(done.map((d) => d.task_id));
@@ -53,7 +54,7 @@ export async function createTask(t: {
   reminder_time?: string;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO daily_tasks (profile_id, title, recurrence, reminder_time)
+    `INSERT INTO ${T.dailyTasks} (profile_id, title, recurrence, reminder_time)
      VALUES (?1, ?2, ?3, ?4)`,
     [t.profile_id, t.title, t.recurrence ?? "daily", t.reminder_time ?? null],
   );
@@ -63,14 +64,14 @@ export async function createTask(t: {
 export async function setTaskDone(taskId: number, done: boolean, day = localToday()): Promise<void> {
   if (done) {
     await execute(
-      `INSERT OR IGNORE INTO task_completions (task_id, done_on) VALUES (?1, ?2)`,
+      `INSERT OR IGNORE INTO ${T.taskCompletions} (task_id, done_on) VALUES (?1, ?2)`,
       [taskId, day],
     );
   } else {
-    await execute(`DELETE FROM task_completions WHERE task_id = ?1 AND done_on = ?2`, [taskId, day]);
+    await execute(`DELETE FROM ${T.taskCompletions} WHERE task_id = ?1 AND done_on = ?2`, [taskId, day]);
   }
 }
 
 export async function archiveTask(taskId: number): Promise<void> {
-  await execute(`UPDATE daily_tasks SET active = 0 WHERE id = ?1`, [taskId]);
+  await execute(`UPDATE ${T.dailyTasks} SET active = 0 WHERE id = ?1`, [taskId]);
 }

@@ -1,4 +1,5 @@
 import { execute, query } from "./client";
+import { T } from "./tables";
 
 export type ScheduleKind = "medication" | "meal" | "activity" | "appointment" | "other";
 
@@ -16,7 +17,7 @@ export interface ScheduleBlock {
 
 export async function listBlocks(profileId: number): Promise<ScheduleBlock[]> {
   return query<ScheduleBlock>(
-    `SELECT * FROM schedule_blocks WHERE profile_id = ?1 ORDER BY start_min ASC, id ASC`,
+    `SELECT * FROM ${T.scheduleBlocks} WHERE profile_id = ?1 ORDER BY start_min ASC, id ASC`,
     [profileId],
   );
 }
@@ -30,7 +31,7 @@ export async function createBlock(b: {
   days?: string;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO schedule_blocks (profile_id, kind, title, start_min, end_min, days)
+    `INSERT INTO ${T.scheduleBlocks} (profile_id, kind, title, start_min, end_min, days)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
     [b.profile_id, b.kind, b.title, b.start_min, b.end_min ?? null, b.days ?? "daily"],
   );
@@ -50,5 +51,5 @@ export async function updateBlock(
 }
 
 export async function deleteBlock(id: number): Promise<void> {
-  await execute(`DELETE FROM schedule_blocks WHERE id = ?1`, [id]);
+  await execute(`DELETE FROM ${T.scheduleBlocks} WHERE id = ?1`, [id]);
 }

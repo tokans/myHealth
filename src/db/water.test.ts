@@ -20,7 +20,7 @@ describe("getWaterDay", () => {
     const res = await getWaterDay(2, "2026-06-08");
     expect(res).toEqual(row);
     const [sql, params] = mockQuery.mock.calls[0];
-    expect(sql).toContain("FROM water_log");
+    expect(sql).toContain("FROM myhealth_water_log");
     expect(params).toEqual([2, "2026-06-08"]);
   });
 
@@ -39,13 +39,13 @@ describe("addGlasses", () => {
     expect(total).toBe(4);
 
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO water_log");
+    expect(sql).toContain("INSERT INTO myhealth_water_log");
     expect(sql).toContain("ON CONFLICT(profile_id, day)");
     expect(params).toEqual([2, "2026-06-08", 1, 8]);
 
     // second query is getWaterDay
     const [qsql, qparams] = mockQuery.mock.calls[0];
-    expect(qsql).toContain("FROM water_log");
+    expect(qsql).toContain("FROM myhealth_water_log");
     expect(qparams).toEqual([2, "2026-06-08"]);
   });
 
@@ -61,7 +61,7 @@ describe("setWaterTarget", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await setWaterTarget(2, 10, "2026-06-08");
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO water_log");
+    expect(sql).toContain("INSERT INTO myhealth_water_log");
     expect(sql).toContain("DO UPDATE SET target_glasses = ?3");
     expect(params).toEqual([2, "2026-06-08", 10]);
   });

@@ -18,7 +18,7 @@ describe("listBaseline", () => {
     mockQuery.mockResolvedValue([] as any);
     await listBaseline(3, "allergy");
     const [sql, params] = mockQuery.mock.calls[0];
-    expect(sql).toContain("FROM profile_baseline");
+    expect(sql).toContain("FROM myhealth_profile_baseline");
     expect(sql).toContain("AND kind = ?2");
     expect(params).toEqual([3, "allergy"]);
   });
@@ -39,7 +39,7 @@ describe("addBaseline", () => {
     const id = await addBaseline({ profile_id: 1, kind: "condition", label: "Asthma" });
     expect(id).toBe(5);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO profile_baseline");
+    expect(sql).toContain("INSERT INTO myhealth_profile_baseline");
     expect(params).toEqual([1, "condition", "Asthma", null, null]);
   });
 
@@ -61,7 +61,7 @@ describe("deleteBaseline", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await deleteBaseline(7);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("DELETE FROM profile_baseline WHERE id = ?1");
+    expect(sql).toContain("DELETE FROM myhealth_profile_baseline WHERE id = ?1");
     expect(params).toEqual([7]);
   });
 });

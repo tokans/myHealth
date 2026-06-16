@@ -1,4 +1,5 @@
 import { execute, query } from "./client";
+import { T } from "./tables";
 import { localToday } from "@/lib/utils";
 
 export interface WaterDay {
@@ -11,7 +12,7 @@ export interface WaterDay {
 
 export async function getWaterDay(profileId: number, day = localToday()): Promise<WaterDay | null> {
   const rows = await query<WaterDay>(
-    `SELECT * FROM water_log WHERE profile_id = ?1 AND day = ?2 LIMIT 1`,
+    `SELECT * FROM ${T.waterLog} WHERE profile_id = ?1 AND day = ?2 LIMIT 1`,
     [profileId, day],
   );
   return rows[0] ?? null;
@@ -25,7 +26,7 @@ export async function addGlasses(
   day = localToday(),
 ): Promise<number> {
   await execute(
-    `INSERT INTO water_log (profile_id, day, glasses, target_glasses)
+    `INSERT INTO ${T.waterLog} (profile_id, day, glasses, target_glasses)
      VALUES (?1, ?2, MAX(0, ?3), ?4)
      ON CONFLICT(profile_id, day)
      DO UPDATE SET glasses = MAX(0, glasses + ?3)`,
@@ -37,7 +38,7 @@ export async function addGlasses(
 
 export async function setWaterTarget(profileId: number, target: number, day = localToday()): Promise<void> {
   await execute(
-    `INSERT INTO water_log (profile_id, day, glasses, target_glasses)
+    `INSERT INTO ${T.waterLog} (profile_id, day, glasses, target_glasses)
      VALUES (?1, ?2, 0, ?3)
      ON CONFLICT(profile_id, day) DO UPDATE SET target_glasses = ?3`,
     [profileId, day, target],

@@ -1,4 +1,5 @@
 import { execute, query } from "./client";
+import { T } from "./tables";
 import type { GoalDirection } from "@/domain/goals";
 
 export interface Goal {
@@ -19,7 +20,7 @@ export interface Goal {
 
 export async function listGoals(profileId: number): Promise<Goal[]> {
   return query<Goal>(
-    `SELECT * FROM goals WHERE profile_id = ?1 AND status != 'archived' ORDER BY created_at DESC`,
+    `SELECT * FROM ${T.goals} WHERE profile_id = ?1 AND status != 'archived' ORDER BY created_at DESC`,
     [profileId],
   );
 }
@@ -36,7 +37,7 @@ export async function createGoal(g: {
   target_date?: string | null;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO goals (profile_id, kind, title, metric_kind, baseline, target, unit, direction, target_date)
+    `INSERT INTO ${T.goals} (profile_id, kind, title, metric_kind, baseline, target, unit, direction, target_date)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`,
     [
       g.profile_id,
@@ -82,12 +83,12 @@ export async function updateGoal(
 
 export async function archiveGoal(id: number): Promise<void> {
   await execute(
-    `UPDATE goals SET status = 'archived', archived_at = datetime('now') WHERE id = ?1`,
+    `UPDATE ${T.goals} SET status = 'archived', archived_at = datetime('now') WHERE id = ?1`,
     [id],
   );
 }
 
 export async function countGoals(): Promise<number> {
-  const rows = await query<{ n: number }>(`SELECT COUNT(*) AS n FROM goals WHERE status = 'active'`);
+  const rows = await query<{ n: number }>(`SELECT COUNT(*) AS n FROM ${T.goals} WHERE status = 'active'`);
   return rows[0]?.n ?? 0;
 }

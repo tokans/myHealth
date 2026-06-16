@@ -12,6 +12,7 @@ import { ReportIssueDialog } from "@/components/feedback/ReportIssueDialog";
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
 import { useGatingStore } from "@/stores/gating.store";
 import { useTierStore, selectTier } from "@/stores/tier.store";
+import { useMemberSwitch } from "@/lib/useMemberSwitch";
 
 const TIER_LABEL: Record<EarnedTier, string> = {
   tracker: "Tracker",
@@ -57,6 +58,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Receive-only: the button just opens the hosted page (the signed support file is then
   // imported in Settings → Support myHealth). Mirrors myFinance's Patron CTA placement.
   const showDonate = reachedTier("tracker", tierCtx);
+
+  // PAID (decision 15), ADDITIVE multi-user switch — undefined for free / single-user, so
+  // the shell chrome is pixel-identical (invariant 3). This is SEPARATE from the no-login
+  // family-profile switcher below (the `profile` slot / ProfileMenu — decision 18), which
+  // is unaffected and keeps working exactly as today.
+  const userSwitch = useMemberSwitch();
 
   // Static nav with the dynamic content tabs (Yoga, Exercises, …) spliced in.
   const allNav = buildNav(contentTypes);
@@ -106,12 +113,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         centralIcon={HeartPulse}
         onReportIssue={() => setReportOpen(true)}
         actions={actions}
-        profile={
-          <div className="flex items-center gap-2">
-            <TierBadge />
-            <ProfileMenu onReport={() => setReportOpen(true)} />
-          </div>
-        }
+        sidebarTop={<div className="px-3 pt-1"><TierBadge /></div>}
+        moreHeader={<TierBadge />}
+        userSwitch={userSwitch}
+        profile={<ProfileMenu onReport={() => setReportOpen(true)} />}
         onExternal={(href) => void openExternal(href)}
         contentClassName="mx-auto max-w-3xl"
       >

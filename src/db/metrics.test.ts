@@ -19,7 +19,7 @@ describe("addMetric", () => {
     const id = await addMetric({ profile_id: 1, kind: "weight", value: 80, taken_at: "2026-06-01T08:00:00" });
     expect(id).toBe(3);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO metrics");
+    expect(sql).toContain("INSERT INTO myhealth_metrics");
     expect(sql).toContain("'manual'");
     expect(params).toEqual([1, "weight", 80, null, "2026-06-01T08:00:00", null]);
   });
@@ -42,7 +42,7 @@ describe("listMetrics", () => {
     mockQuery.mockResolvedValue([] as any);
     await listMetrics(2, "bp");
     const [sql, params] = mockQuery.mock.calls[0];
-    expect(sql).toContain("FROM metrics");
+    expect(sql).toContain("FROM myhealth_metrics");
     expect(sql).toContain("kind = ?2");
     expect(sql).toContain("ORDER BY taken_at ASC");
     expect(params).toEqual([2, "bp"]);

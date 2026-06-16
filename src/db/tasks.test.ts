@@ -71,13 +71,13 @@ describe("listTasksForToday", () => {
 
     // listTasks SQL + params
     const [taskSql, taskParams] = mockQuery.mock.calls[0];
-    expect(taskSql).toContain("FROM daily_tasks");
+    expect(taskSql).toContain("FROM myhealth_daily_tasks");
     expect(taskSql).toContain("active = 1");
     expect(taskParams).toEqual([5]);
 
     // completions SQL + params keyed on the day
     const [doneSql, doneParams] = mockQuery.mock.calls[1];
-    expect(doneSql).toContain("FROM task_completions");
+    expect(doneSql).toContain("FROM myhealth_task_completions");
     expect(doneSql).toContain("done_on = ?1");
     expect(doneParams).toEqual([day]);
   });
@@ -89,7 +89,7 @@ describe("createTask", () => {
     const id = await createTask({ profile_id: 2, title: "Walk", recurrence: "weekdays", reminder_time: "08:00" });
     expect(id).toBe(9);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT INTO daily_tasks");
+    expect(sql).toContain("INSERT INTO myhealth_daily_tasks");
     expect(params).toEqual([2, "Walk", "weekdays", "08:00"]);
   });
 
@@ -111,7 +111,7 @@ describe("setTaskDone", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await setTaskDone(7, true, "2026-06-08");
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("INSERT OR IGNORE INTO task_completions");
+    expect(sql).toContain("INSERT OR IGNORE INTO myhealth_task_completions");
     expect(params).toEqual([7, "2026-06-08"]);
   });
 
@@ -119,7 +119,7 @@ describe("setTaskDone", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await setTaskDone(7, false, "2026-06-08");
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("DELETE FROM task_completions");
+    expect(sql).toContain("DELETE FROM myhealth_task_completions");
     expect(params).toEqual([7, "2026-06-08"]);
   });
 });
@@ -129,7 +129,7 @@ describe("archiveTask", () => {
     mockExecute.mockResolvedValue({ rowsAffected: 1 } as any);
     await archiveTask(4);
     const [sql, params] = mockExecute.mock.calls[0];
-    expect(sql).toContain("UPDATE daily_tasks SET active = 0");
+    expect(sql).toContain("UPDATE myhealth_daily_tasks SET active = 0");
     expect(params).toEqual([4]);
   });
 });

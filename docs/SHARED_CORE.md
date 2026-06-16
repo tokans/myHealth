@@ -51,6 +51,7 @@ The answer is **not** "myHealth imports from myFinance." That couples two shippa
 | Masters/OTA engine: Ed25519 verify, AES-GCM transport, monotonic revision, 4-layer merge, GitHub-Releases pull | The **master registry** + zod schemas + which bundle types exist |
 | Tiers/gamification + launch telemetry | Tier thresholds, the "core feature" set |
 | Feature-gate framework + `FeatureGuard` + gating store | The **gate definitions** & prerequisites |
+| **Content library framework** (`sharedcorelib/content`): model + helpers, OTA payload schemas, `createContentStore`, `createContentSync` (daily catalog + per-type bundle sync), registry merge | The `content/<type>/` folders (baked samples + `bundles/*.json`), the `import.meta.glob`, the icon resolver, the page UI + nav wiring, the release tags + signing keys |
 | Reminder engine: derived+manual, sweep, bucketing, one-notification-per-sweep | The **derived-reminder generators** (from app data) |
 | LAN sync transport (Rust pipe) + envelope crypto + LWW merge | The **sync adapter**: which tables, change-set schema |
 | HTML→PDF report harness; PBKDF2→AES-GCM export packaging | The **report templates** |

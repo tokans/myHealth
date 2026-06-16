@@ -11,6 +11,8 @@ import { localToday } from "@/lib/utils";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
 import { METRIC_KINDS } from "@/lib/metricKinds";
+import { ExcelButtons } from "@/components/feature/ExcelButtons";
+import { FEATURE_EXCEL } from "@/lib/featureExcel";
 
 export default function Metrics() {
   const { profile } = useActiveProfile();
@@ -48,13 +50,16 @@ export default function Metrics() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold">
-          <Activity className="h-6 w-6 text-primary" /> Vitals
-        </h1>
-        <p className="text-muted-foreground">
-          {profile ? `Logging for ${profile.name}.` : "Create a profile first."}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <Activity className="h-6 w-6 text-primary" /> Vitals
+          </h1>
+          <p className="text-muted-foreground">
+            {profile ? `Logging for ${profile.name}.` : "Create a profile first."}
+          </p>
+        </div>
+        <ExcelButtons spec={FEATURE_EXCEL.vitals!} onImported={loadRecent} />
       </div>
 
       {profile && (

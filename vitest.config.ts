@@ -11,6 +11,11 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // `sharedcorelib` is a symlinked file: dep with its OWN node_modules (react/
+    // zustand devDeps for the lib's tests). Without deduping, a core-created store
+    // (e.g. createContentStore) would bind a SECOND React copy and crash component
+    // tests with "Cannot read properties of null". Collapse to the app's single copy.
+    dedupe: ["react", "react-dom", "zustand"],
   },
   test: {
     environment: "jsdom",

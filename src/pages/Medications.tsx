@@ -8,6 +8,8 @@ import { FeatureGuard } from "@/components/feature/FeatureGuard";
 import { isTauri } from "@/lib/environment";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { listMedications, createMedication, archiveMedication, type Medication } from "@/db/medications";
+import { ExcelButtons } from "@/components/feature/ExcelButtons";
+import { FEATURE_EXCEL } from "@/lib/featureExcel";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
 
@@ -74,9 +76,12 @@ function MedicationsInner() {
             {profile ? `Current medications for ${profile.name}.` : "Create a profile first."}
           </p>
         </div>
-        <Button onClick={() => setShow((s) => !s)}>
-          <Plus className="h-4 w-4" /> Add
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExcelButtons spec={FEATURE_EXCEL.medications!} onImported={load} />
+          <Button onClick={() => setShow((s) => !s)}>
+            <Plus className="h-4 w-4" /> Add
+          </Button>
+        </div>
       </div>
 
       {show && <MedFormCard onSubmit={onCreate} onCancel={() => setShow(false)} />}

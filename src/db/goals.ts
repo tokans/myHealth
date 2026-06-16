@@ -53,6 +53,40 @@ export async function createGoal(g: {
   return res.lastInsertId ?? 0;
 }
 
+/** All non-archived goals across profiles — for the Excel export. */
+export async function listAllGoals(): Promise<Goal[]> {
+  return query<Goal>(
+    `SELECT * FROM goals WHERE status != 'archived' ORDER BY profile_id ASC, created_at DESC`,
+  );
+}
+
+/** Update an existing goal (Excel import, update-by-ID path). */
+export async function updateGoal(
+  id: number,
+  g: {
+    profile_id: number;
+    kind: string;
+    title: string;
+    metric_kind: string | null;
+    baseline: number | null;
+    target: number | null;
+    unit: string | null;
+    direction: GoalDirection;
+    target_date: string | null;
+    status: Goal["status"];
+  },
+): Promise<void> {
+  await execute(
+    `UPDATE goals SET profile_id = ?2, kind = ?3, title = ?4, metric_kind = ?5, baseline = ?6,
+       target = ?7, unit = ?8, direction = ?9, target_date = ?10, status = ?11
+       WHERE id = ?1`,
+    [
+      id, g.profile_id, g.kind, g.title, g.metric_kind, g.baseline,
+      g.target, g.unit, g.direction, g.target_date, g.status,
+    ],
+  );
+}
+
 export async function archiveGoal(id: number): Promise<void> {
   await execute(
     `UPDATE goals SET status = 'archived', archived_at = datetime('now') WHERE id = ?1`,

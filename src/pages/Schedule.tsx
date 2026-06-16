@@ -9,6 +9,8 @@ import { isTauri } from "@/lib/environment";
 import { minutesToHHMM, hhmmToMinutes } from "@/lib/utils";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { listBlocks, createBlock, deleteBlock, type ScheduleBlock, type ScheduleKind } from "@/db/schedule";
+import { ExcelButtons } from "@/components/feature/ExcelButtons";
+import { FEATURE_EXCEL } from "@/lib/featureExcel";
 
 const KIND_ICON: Record<ScheduleKind, typeof Pill> = {
   medication: Pill,
@@ -67,9 +69,12 @@ function ScheduleInner() {
             {profile ? `A typical day for ${profile.name}.` : "Create a profile first."}
           </p>
         </div>
-        <Button onClick={() => setShow((s) => !s)}>
-          <Plus className="h-4 w-4" /> Add block
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExcelButtons spec={FEATURE_EXCEL.schedule!} onImported={load} />
+          <Button onClick={() => setShow((s) => !s)}>
+            <Plus className="h-4 w-4" /> Add block
+          </Button>
+        </div>
       </div>
 
       {show && <BlockFormCard onSubmit={onCreate} onCancel={() => setShow(false)} />}

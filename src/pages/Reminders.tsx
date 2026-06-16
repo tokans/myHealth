@@ -16,6 +16,8 @@ import {
 } from "@/db/reminders";
 import { syncHabitReminders } from "@/lib/reminderSweep";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { ExcelButtons } from "@/components/feature/ExcelButtons";
+import { FEATURE_EXCEL } from "@/lib/featureExcel";
 import { cn } from "@/lib/utils";
 
 const BUCKET_ORDER: ReminderBucket[] = ["overdue", "due_soon", "upcoming", "snoozed"];
@@ -67,13 +69,16 @@ export default function Reminders() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold">
-          <Bell className="h-6 w-6 text-primary" /> Reminders
-        </h1>
-        <p className="text-muted-foreground">
-          Water and daily-task nudges appear here automatically. Add your own below.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <Bell className="h-6 w-6 text-primary" /> Reminders
+          </h1>
+          <p className="text-muted-foreground">
+            Water and daily-task nudges appear here automatically. Add your own below.
+          </p>
+        </div>
+        <ExcelButtons spec={FEATURE_EXCEL.reminders!} onImported={load} />
       </div>
 
       <Card>

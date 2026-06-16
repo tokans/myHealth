@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { HeartPulse, Settings as SettingsIcon } from "lucide-react";
+import { Heart, HeartPulse, Settings as SettingsIcon } from "lucide-react";
 import { SuiteShell, type SuiteNavItem, type SuiteAction } from "sharedcorelib/ui";
 import { cn } from "@/lib/utils";
 import { buildNav, type NavItem } from "@/lib/nav";
 import { GATES, gateVisibility, tierVisibility, type EarnedTier } from "@/lib/featureGate";
 import { useContentTypes } from "@/content/registry";
 import { openExternal } from "@/lib/openExternal";
+import { openDonatePage } from "@/lib/donate";
+import { reachedTier } from "@/lib/gamification";
 import { ReportIssueDialog } from "@/components/feedback/ReportIssueDialog";
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
 import { useGatingStore } from "@/stores/gating.store";
@@ -46,7 +48,15 @@ function TierBadge() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const flags = useGatingStore();
   const contentTypes = useContentTypes();
+  const tierCtx = useTierStore((s) => s.ctx);
   const [reportOpen, setReportOpen] = useState(false);
+
+  // The "Donate to support" CTA surfaces alongside "Report an issue" once the user has
+  // earned their way to the Tracker tier (the 2nd rung) — a calm Starter never sees it.
+  // Donating only accelerates the free ladder; it never paywalls the safety floor.
+  // Receive-only: the button just opens the hosted page (the signed support file is then
+  // imported in Settings → Support myHealth). Mirrors myFinance's Patron CTA placement.
+  const showDonate = reachedTier("tracker", tierCtx);
 
   // Static nav with the dynamic content tabs (Yoga, Exercises, …) spliced in.
   const allNav = buildNav(contentTypes);
@@ -72,9 +82,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     .filter((it) => it.central && navState(it, flags) === "open")
     .map((it) => ({ key: it.to, label: it.label, icon: it.icon, to: it.to }));
 
-  // Report an issue is suite-standard chrome rendered by SuiteShell itself (`onReportIssue`);
-  // only app-specific actions are listed here.
+  // Report an issue is suite-standard chrome rendered by SuiteShell itself (`onReportIssue`),
+  // and these app-specific actions render right after it (More drawer + sidebar footer).
   const actions: SuiteAction[] = [
+    ...(showDonate
+      ? [{ key: "donate", label: "Donate to support", icon: Heart, onSelect: () => void openDonatePage(), tone: "primary" as const }]
+      : []),
     { key: "settings", label: "Settings", icon: SettingsIcon, to: "/settings" },
   ];
 

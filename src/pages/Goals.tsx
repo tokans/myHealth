@@ -9,6 +9,8 @@ import { isTauri } from "@/lib/environment";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { listGoals, createGoal, archiveGoal, type Goal } from "@/db/goals";
 import { listMetrics } from "@/db/metrics";
+import { ExcelButtons } from "@/components/feature/ExcelButtons";
+import { FEATURE_EXCEL } from "@/lib/featureExcel";
 import { projectGoal, type GoalDirection, type GoalProjection } from "@/domain/goals";
 import { METRIC_KINDS, metricKind } from "@/lib/metricKinds";
 import { useTierStore } from "@/stores/tier.store";
@@ -92,9 +94,12 @@ function GoalsInner() {
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <Target className="h-6 w-6 text-primary" /> Goals
         </h1>
-        <Button onClick={() => setShow((s) => !s)}>
-          <Plus className="h-4 w-4" /> New goal
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExcelButtons spec={FEATURE_EXCEL.goals!} onImported={load} />
+          <Button onClick={() => setShow((s) => !s)}>
+            <Plus className="h-4 w-4" /> New goal
+          </Button>
+        </div>
       </div>
 
       {show && <GoalFormCard onSubmit={onCreate} onCancel={() => setShow(false)} />}

@@ -58,6 +58,36 @@ export async function syncDerivedReminders(desired: DerivedReminder[]): Promise<
   );
 }
 
+/** All MANUAL reminders across profiles (any status) — the import upsert target set. */
+export async function listManualReminders(): Promise<Reminder[]> {
+  return query<Reminder>(
+    `SELECT * FROM reminders WHERE kind = 'manual' ORDER BY due_date ASC, id ASC`,
+  );
+}
+
+/**
+ * Reminders shown in the Excel export: every manual reminder (any status) PLUS the
+ * still-open auto/derived nudges (water/task/medication), so the sheet mirrors what the
+ * user sees. Auto rows are read-only on import (the app regenerates them).
+ */
+export async function listRemindersForExport(): Promise<Reminder[]> {
+  return query<Reminder>(
+    `SELECT * FROM reminders WHERE kind = 'manual' OR status = 'open' ORDER BY due_date ASC, id ASC`,
+  );
+}
+
+/** Update an existing MANUAL reminder (Excel import, update-by-ID path). */
+export async function updateManualReminder(
+  id: number,
+  r: { profile_id: number | null; title: string; detail: string | null; due_date: string; status: Reminder["status"] },
+): Promise<void> {
+  await execute(
+    `UPDATE reminders SET profile_id = ?2, title = ?3, detail = ?4, due_date = ?5, status = ?6
+       WHERE id = ?1 AND kind = 'manual'`,
+    [id, r.profile_id, r.title, r.detail, r.due_date, r.status],
+  );
+}
+
 export async function createManualReminder(r: {
   profile_id?: number | null;
   title: string;

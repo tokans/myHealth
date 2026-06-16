@@ -11,6 +11,9 @@ import {
   UserPlus,
   Check,
   Camera,
+  ScanText,
+  Loader2,
+  X,
 } from "lucide-react";
 import { getCommonBaked } from "sharedcorelib/masters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -34,10 +37,13 @@ import {
   parseDocument,
   recognizeDocument,
   reconcileMembers,
+  captureKindForMime,
   type ParseKind,
   type ParsedDocument,
   type Capture,
 } from "@/import";
+import { ocrConfigured } from "@/import/ocr/config";
+import type { OcrProgress } from "@scandoc/core/ocr";
 
 const RELATIONSHIPS = getCommonBaked("relationship"); // common master, reused (no recreate)
 
@@ -246,14 +252,21 @@ function AddDocument({
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [saving, setSaving] = useState(false);
   const cameraScan = useSettingsStore((s) => s.cameraScan);
+  const ocrConsent = useSettingsStore((s) => s.ocrConsent);
+  const setOcrConsent = useSettingsStore((s) => s.setOcrConsent);
   const [onPhone, setOnPhone] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [ocr, setOcr] = useState<OcrProgress | null>(null);
+  const [askOcr, setAskOcr] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // The camera button is offered only on a phone AND only when the user opted in.
   useEffect(() => {
     void isMobile().then(setOnPhone);
   }, []);
 
+  // On-device OCR is available only in the desktop/mobile app with the assets configured.
+  const ocrAvailable = isTauri() && ocrConfigured();
   const parseKind = EXTRACTABLE[docType];
   const hasSelf = existingProfiles.some((p) => p.is_self);
 
@@ -281,21 +294,61 @@ function AddDocument({
     }
   }
 
-  /** Ingest picked/captured bytes: stage them, recognize text, auto-extract on scan. */
+  /** Ingest picked/captured bytes: stage them, then recognize (OCR if applicable). */
   async function acceptDocument(bytes: Uint8Array, name: string, mime: string | null) {
     setPending({ bytes, name, mime });
     if (!title) setTitle(name);
-
-    const cap = await recognizeDocument(bytes, mime, name);
-    setCapture(cap);
-    setRecognizedText(cap.text);
     setParsed(null);
     setMembers([]);
+    setAskOcr(false);
 
-    // Auto-extract when launched as a scan and we actually read text off the file.
-    if (intent.autoScan && parseKind && cap.text.trim()) {
-      runExtract(cap.text, parseKind, cap.source);
+    const kind = captureKindForMime(mime, name);
+    const ocrCandidate = (kind === "photo" || kind === "scanned-pdf") && !!parseKind;
+
+    // First image/PDF scan needs one-time consent before the ~10MB language download.
+    if (ocrCandidate && ocrAvailable && !ocrConsent) {
+      const { ocrLangProvisioned } = await import("@/import/ocr");
+      if (!(await ocrLangProvisioned())) {
+        setCapture({ text: "", source: "ocr", kind, needsOcr: true });
+        setRecognizedText("");
+        setAskOcr(true);
+        return;
+      }
     }
+
+    await runRecognize(bytes, mime, name, ocrCandidate && ocrAvailable);
+  }
+
+  /** Recognize text (with OCR progress + cancel when `runOcr`), then auto-extract on scan. */
+  async function runRecognize(bytes: Uint8Array, mime: string | null, name: string, runOcr: boolean) {
+    setAskOcr(false);
+    const ctrl = runOcr ? new AbortController() : null;
+    abortRef.current = ctrl;
+    if (runOcr) setOcr({ phase: "download", received: 0 });
+    try {
+      const cap = await recognizeDocument(bytes, mime, name, {
+        onProgress: setOcr,
+        signal: ctrl?.signal,
+      });
+      setCapture(cap);
+      setRecognizedText(cap.text);
+      if (intent.autoScan && parseKind && cap.text.trim()) {
+        runExtract(cap.text, parseKind, cap.source);
+      }
+    } catch {
+      // Cancelled or OCR failed — fall back to the paste path.
+      setCapture({ text: "", source: "ocr", kind: captureKindForMime(mime, name), needsOcr: true });
+      setRecognizedText("");
+    } finally {
+      setOcr(null);
+      abortRef.current = null;
+    }
+  }
+
+  /** User granted the one-time OCR download consent: persist it and read the staged file. */
+  async function enableOcr() {
+    await setOcrConsent(true);
+    if (pending) await runRecognize(pending.bytes, pending.mime, pending.name, true);
   }
 
   async function pickFile() {
@@ -453,18 +506,53 @@ function AddDocument({
                   <Button
                     size="sm"
                     variant="secondary"
-                    disabled={!recognizedText.trim()}
+                    disabled={!recognizedText.trim() || !!ocr}
                     onClick={() => runExtract(recognizedText, parseKind, capture?.source ?? "ocr")}
                   >
                     Extract fields
                   </Button>
                 </div>
-                {capture?.needsOcr && (
+                {askOcr ? (
+                  <div className="space-y-2 rounded-md bg-muted/40 p-2.5 text-xs">
+                    <p className="flex items-center gap-1.5 font-medium">
+                      <ScanText className="h-4 w-4 text-primary" /> Read text from this{" "}
+                      {intent.type === "insurance" ? "card" : "document"} on your device?
+                    </p>
+                    <p className="text-muted-foreground">
+                      Downloads ~10&nbsp;MB of English text-recognition data once, then works offline. It runs entirely
+                      on this device — nothing is uploaded.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => void enableOcr()}>
+                        <ScanText className="h-4 w-4" /> Enable on-device OCR
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setAskOcr(false)}>
+                        Not now
+                      </Button>
+                    </div>
+                  </div>
+                ) : ocr ? (
+                  <div className="flex items-center justify-between gap-2 rounded-md bg-muted/40 p-2 text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {ocr.phase === "download"
+                        ? `Downloading text-recognition data${
+                            ocr.total ? ` (${Math.round(((ocr.received ?? 0) / ocr.total) * 100)}%)` : "…"
+                          }`
+                        : `Reading text${ocr.received != null ? ` (${Math.round((ocr.received ?? 0) * 100)}%)` : "…"}`}
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={() => abortRef.current?.abort()}>
+                      <X className="h-3.5 w-3.5" /> Cancel
+                    </Button>
+                  </div>
+                ) : capture?.needsOcr ? (
                   <p className="text-xs text-muted-foreground">
-                    No text could be read from this image yet (on-device OCR isn’t bundled). Paste or type the text from
-                    the {intent.type === "insurance" ? "card" : "document"} below, then extract.
+                    {ocrAvailable
+                      ? "No text could be read automatically. Paste or type the text"
+                      : "Automatic text reading isn’t available here. Paste or type the text"}{" "}
+                    from the {intent.type === "insurance" ? "card" : "document"} below, then extract.
                   </p>
-                )}
+                ) : null}
                 <textarea
                   id="rtext"
                   className="min-h-[96px] w-full rounded-md border border-input bg-background p-2 text-xs"

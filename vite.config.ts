@@ -35,6 +35,7 @@ export default defineConfig({
           if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id))
             return "vendor-react";
           if (/[\\/]node_modules[\\/]@tanstack[\\/]/.test(id)) return "vendor-query";
+          if (/[\\/]node_modules[\\/](tesseract\.js|pdfjs-dist)[\\/]/.test(id)) return "vendor-ocr";
           if (/[\\/]node_modules[\\/](@radix-ui|lucide-react|react-hook-form)[\\/]/.test(id))
             return "vendor-ui";
           if (/[\\/]node_modules[\\/](zod|date-fns|@noble)[\\/]/.test(id)) return "vendor-utils";

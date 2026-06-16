@@ -24,6 +24,7 @@ export const OCR_CORE_PATH = "/ocr/"; // directory: tesseract probes SIMD vs non
 export const OCR_PDF_WORKER_SRC = "/ocr/pdf.worker.min.mjs";
 
 export const OCR_MAX_PDF_PAGES = 5;
+export const OCR_PDF_SCALE = 2; // ≈150–200 DPI render for OCR
 
 /** True when the download host + baked hash are both configured (build-time gate). */
 export function ocrConfigured(): boolean {

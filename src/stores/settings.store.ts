@@ -59,16 +59,24 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
   setCameraScan: async (enabled: boolean) => {
     set({ cameraScan: enabled });
-    if (!isTauri()) return;
-    try {
-      // The settings table is a schemaless key/value store (no migration needed).
-      await execute(
-        `INSERT INTO settings (key, value) VALUES ('camera_scan', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-        [enabled ? "1" : "0"],
-      );
-    } catch (e) {
-      console.error("Failed to persist camera_scan:", e);
-    }
+    await persistFlag("camera_scan", enabled);
+  },
+  setOcrConsent: async (granted: boolean) => {
+    set({ ocrConsent: granted });
+    await persistFlag("ocr_consent", granted);
   },
 }));
+
+/** Upsert a boolean flag into the schemaless `settings` key/value table (no migration). */
+async function persistFlag(key: string, value: boolean): Promise<void> {
+  if (!isTauri()) return;
+  try {
+    await execute(
+      `INSERT INTO settings (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      [key, value ? "1" : "0"],
+    );
+  } catch (e) {
+    console.error(`Failed to persist ${key}:`, e);
+  }
+}

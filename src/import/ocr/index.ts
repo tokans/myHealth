@@ -4,12 +4,8 @@
  *
  * The basic OCR is FREE and on-device; the paid AI extraction (OpenMed) stays separate.
  */
-import {
-  createTesseractRecognizer,
-  isLangProvisioned,
-  type Recognizer,
-  type OcrProgress,
-} from "@scandoc/core/ocr";
+import { createTesseractRecognizer, isLangProvisioned, rasterizePdf, type OcrProgress } from "@scandoc/core/ocr";
+import type { Recognizer } from "@scandoc/core";
 import { tauriOcrHost } from "./tauriHost";
 import {
   OCR_ASSET_BASE_URL,
@@ -17,6 +13,7 @@ import {
   OCR_LANG,
   OCR_LANG_FILE,
   OCR_MAX_PDF_PAGES,
+  OCR_PDF_SCALE,
   OCR_PDF_WORKER_SRC,
   OCR_TRAINEDDATA_SHA256,
   OCR_WORKER_PATH,
@@ -40,10 +37,22 @@ export function makeOcrRecognizer(opts: MakeOcrOptions = {}): Recognizer {
       lang: OCR_LANG,
       workerPath: OCR_WORKER_PATH,
       corePath: OCR_CORE_PATH,
-      pdfWorkerSrc: OCR_PDF_WORKER_SRC,
-      maxPdfPages: OCR_MAX_PDF_PAGES,
     },
-    { onProgress: opts.onProgress, signal: opts.signal },
+    {
+      onProgress: opts.onProgress,
+      signal: opts.signal,
+      // The app owns the heavy peerDeps: dynamic-import them HERE so Vite resolves +
+      // code-splits them (the symlinked lib can't resolve them from its own dist).
+      loadCreateWorker: async () => (await import("tesseract.js")).createWorker,
+      rasterize: async (bytes) =>
+        rasterizePdf(
+          await import("pdfjs-dist/legacy/build/pdf.mjs"),
+          bytes,
+          OCR_PDF_WORKER_SRC,
+          OCR_MAX_PDF_PAGES,
+          OCR_PDF_SCALE,
+        ),
+    },
   );
 }
 

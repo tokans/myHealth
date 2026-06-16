@@ -35,6 +35,9 @@ Thumbs.db
 # Local content-OTA dev server (throwaway keys + built signed bundles)
 .dev-content/
 
+# Bundled OCR engine assets (generated from node_modules by scripts/build-ocr-assets.mjs)
+public/ocr/
+
 # App data captured during dev (never commit user/health data)
 *.db
 *.sqlite

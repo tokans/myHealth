@@ -13,6 +13,7 @@ const DEFAULTS = {
   dateFormat: "DD/MM/YYYY",
   theme: "system",
   cameraScan: false,
+  ocrConsent: false,
 } as const;
 
 beforeEach(() => {
@@ -84,13 +85,28 @@ describe("useSettingsStore.setCameraScan", () => {
     vi.mocked(execute).mockResolvedValue({ rowsAffected: 1, lastInsertId: 0 });
     await useSettingsStore.getState().setCameraScan(true);
     expect(useSettingsStore.getState().cameraScan).toBe(true);
-    expect(execute).toHaveBeenCalledWith(expect.stringContaining("camera_scan"), ["1"]);
+    expect(execute).toHaveBeenCalledWith(expect.any(String), ["camera_scan", "1"]);
   });
 
   it("persists the off state and survives a write failure", async () => {
     vi.mocked(execute).mockRejectedValue(new Error("db down"));
     await useSettingsStore.getState().setCameraScan(false);
     expect(useSettingsStore.getState().cameraScan).toBe(false);
-    expect(execute).toHaveBeenCalledWith(expect.any(String), ["0"]);
+    expect(execute).toHaveBeenCalledWith(expect.any(String), ["camera_scan", "0"]);
+  });
+});
+
+describe("useSettingsStore.setOcrConsent", () => {
+  it("hydrates ocrConsent from the ocr_consent flag", async () => {
+    vi.mocked(query).mockResolvedValue([{ key: "ocr_consent", value: "1" }]);
+    await useSettingsStore.getState().hydrate();
+    expect(useSettingsStore.getState().ocrConsent).toBe(true);
+  });
+
+  it("updates state and upserts the ocr_consent flag", async () => {
+    vi.mocked(execute).mockResolvedValue({ rowsAffected: 1, lastInsertId: 0 });
+    await useSettingsStore.getState().setOcrConsent(true);
+    expect(useSettingsStore.getState().ocrConsent).toBe(true);
+    expect(execute).toHaveBeenCalledWith(expect.any(String), ["ocr_consent", "1"]);
   });
 });

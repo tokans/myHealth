@@ -192,7 +192,9 @@ After that runs, point myHealth at the same package: add `"sharedcorelib": "file
 | Layer | What it is | Size | Sharing |
 |---|---|---|---|
 | **L1 — build-time library** | the TS/React `sharedcorelib` code | small (KB–low MB) | **Bundled into each app's webview bundle** at build time. Not runtime-shared (it's compiled into each app's assets). Duplication here is cheap and keeps apps standalone. |
-| **L2 — runtime assets** | native sidecars + ML models (e.g. myHealth's OCR sidecar), the **OTA reference-data cache** (masters/partners bundles), and a suite manifest | large (10s–100s MB) + downloaded | **Installed once into a shared suite dir and reused.** This is "the core" worth sharing. |
+| **L2 — runtime assets** | native sidecars + ML models (e.g. a future heavy OCR/VLM sidecar), the **OTA reference-data cache** (masters/partners bundles), and a suite manifest | large (10s–100s MB) + downloaded | **Installed once into a shared suite dir and reused.** This is "the core" worth sharing. |
+
+> Note: the **free baseline OCR is NOT an L2 sidecar** — it's Tesseract via `tesseract.js` (WASM) in `@scandoc/core/ocr`, running in the webview. Its worker/core wasm are L1-bundled per app; only the ~10 MB English language data is downloaded once (SHA-256-verified) into the app's local data dir. A heavier native PaddleOCR/VLM pipeline, if added, would be the L2 sidecar above.
 
 So "first installs the core, second reuses it" applies to **L2** — the expensive, downloaded, native stuff. The cheap compiled library rides along in each app.
 

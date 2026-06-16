@@ -1,12 +1,114 @@
 import { useEffect, useState } from "react";
+import { Heart, Stethoscope, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BackupPanel } from "sharedcorelib/ui";
 import type { ExcelBackup } from "sharedcorelib/backup";
 import { isTauri } from "@/lib/environment";
 import { buildExcelBackup, saveBackupFile } from "@/lib/excelBackup";
+import { openDonatePage, openPartnerSignup } from "@/lib/donate";
+import {
+  grantConfigured,
+  grantStatus,
+  importGrantFromFile,
+  type GrantStatus,
+} from "@/grant/receiver";
 import { useProfileStore } from "@/stores/profile.store";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
+
+/** A short human label for the current grant entitlement. */
+function grantLabel(s: GrantStatus): string {
+  if (s.supporter && s.pro) return "Supporter + Verified Pro";
+  if (s.pro) return "Verified Pro";
+  if (s.supporter) return "Supporter";
+  return "None yet";
+}
+
+/**
+ * Support myHealth — the donation (Supporter) + professional (Verified Pro) CTAs,
+ * plus the receive-only grant import. Always visible: donating / enrolling are just
+ * external links to tokans.org. Afterwards the user receives a signed support file
+ * and imports it here — verified on-device, nothing about you is ever uploaded; a
+ * donation only ACCELERATES the free ladder, it never paywalls the safety floor.
+ */
+function SupporterCard({ onChanged }: { onChanged: () => void }) {
+  const [status, setStatus] = useState<GrantStatus>(grantStatus());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Import needs the baked signing keys (to verify) and the desktop app (to read the file).
+  const canImport = grantConfigured() && isTauri();
+
+  const onImport = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await importGrantFromFile();
+      if (next) {
+        setStatus(next);
+        onChanged();
+      } else {
+        setError("No valid support file selected.");
+      }
+    } catch {
+      setError("That file couldn’t be verified as a support file.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Support myHealth</CardTitle>
+        <CardDescription>
+          myHealth is free and runs entirely on your device. A donation unlocks the Supporter
+          tier; verified health professionals can unlock Verified Pro. Either way, nothing about
+          you is ever uploaded.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm">
+          Current status: <span className="font-medium">{grantLabel(status)}</span>
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <Button className="gap-2" onClick={() => void openDonatePage()}>
+            <Heart className="h-4 w-4" />
+            Donate to support
+            <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => void openPartnerSignup()}>
+            <Stethoscope className="h-4 w-4" />
+            Become a Verified Pro
+            <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+          </Button>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          After you donate or enroll, you’ll receive a signed support file. Import it below — it’s
+          verified on your device and unlocks every feature.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" onClick={onImport} disabled={!canImport || busy}>
+            {busy ? "Verifying…" : "Import support file"}
+          </Button>
+          {!canImport && (
+            <span className="text-xs text-muted-foreground">
+              {isTauri()
+                ? "Available once support files are enabled in this build."
+                : "Open the desktop app to import a support file."}
+            </span>
+          )}
+        </div>
+
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </CardContent>
+    </Card>
+  );
+}
 
 /**
  * Settings — suite-standard utility surface. First resident: the whole-store
@@ -64,6 +166,13 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      <SupporterCard
+        onChanged={() => {
+          void refreshTier();
+          void refreshGating();
+        }}
+      />
     </div>
   );
 }

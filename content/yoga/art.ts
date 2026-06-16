@@ -1,14 +1,12 @@
 /**
- * Inline SVG line-art for the baked sample yoga poses — the "pics" each step
- * shows. Kept as small, dependency-free vector strings (no binary assets, no
- * network) so the sample sequences render instantly offline. Downloaded bundles
- * may instead carry their own `image` as a `data:` URI (see `domain/yoga.ts`).
+ * Inline SVG line-art for the baked yoga poses — the "pics" each step shows.
+ * Small, dependency-free vector strings (no binary assets, no network) so the
+ * sample sequences render instantly offline. Downloaded bundles instead carry
+ * their own `image` as a `data:`/https URL.
  *
- * Pure data + one helper. No DB, no React. Each art id maps to a stylized figure
- * on a mat baseline — clear enough to read the shape at a glance, not anatomical.
+ * Pure data + helpers. Each figure draws inside a 120×100 viewBox standing on a
+ * mat baseline at y=92 — clear enough to read the shape, not anatomical.
  */
-
-/** Stable ids for the baked pose illustrations. */
 export type PoseArt =
   | "mountain"
   | "forward-fold"
@@ -27,7 +25,6 @@ const STROKE = `fill="none" stroke="currentColor" stroke-width="3" stroke-lineca
 const HEAD = (cx: number, cy: number) => `<circle cx="${cx}" cy="${cy}" r="7" ${STROKE} />`;
 const MAT = `<line x1="6" y1="92" x2="114" y2="92" stroke="currentColor" stroke-width="2" stroke-opacity="0.35" />`;
 
-/** Each figure draws inside a 120×100 viewBox standing on the mat line at y=92. */
 const FIGURES: Record<PoseArt, string> = {
   mountain: `${HEAD(60, 24)}<path d="M60 31 V62 M60 38 L48 50 M60 38 L72 50 M60 62 L52 92 M60 62 L68 92" ${STROKE} />`,
   "forward-fold": `${HEAD(60, 70)}<path d="M60 30 L60 50 M60 30 L70 22 M60 30 L50 22 M60 50 Q58 64 56 76 M60 50 L60 92" ${STROKE} />`,
@@ -43,14 +40,9 @@ const FIGURES: Record<PoseArt, string> = {
   bridge: `${HEAD(26, 64)}<path d="M26 70 Q60 44 94 70 M40 62 L40 84 M80 62 L80 84" ${STROKE} />`,
 };
 
-/** Build a standalone SVG document string for a pose (currentColor inherits text color). */
+/** Standalone SVG document string for a pose (currentColor inherits text color). */
 export function poseSvg(art: PoseArt): string {
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img">` +
-    MAT +
-    FIGURES[art] +
-    `</svg>`
-  );
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img">${MAT}${FIGURES[art]}</svg>`;
 }
 
 /** A `data:` URI for the pose SVG, usable directly as an `<img src>`. */

@@ -3,11 +3,10 @@
   "name": "Restorative & Relaxation",
   "description": "Slow, supported sequences to wind down and release tension.",
   "version": 1,
-  "sequences": [
+  "entries": [
     {
-      "id": "restorative-evening-unwind",
+      "id": "yoga-evening-unwind",
       "name": "Evening Unwind",
-      "sanskrit": "",
       "level": "beginner",
       "focus": "Relaxation",
       "summary": "A calming pre-sleep flow of gentle forward folds and rest.",
@@ -31,27 +30,15 @@
       ]
     },
     {
-      "id": "restorative-back-release",
+      "id": "yoga-lower-back-release",
       "name": "Lower-Back Release",
       "level": "beginner",
       "focus": "Relaxation",
       "summary": "Knee hugs and gentle rocking to ease a tight lower back.",
       "steps": [
-        {
-          "title": "Knees to Chest",
-          "instruction": "On your back, hug both knees in and gently rock side to side.",
-          "durationSec": 40
-        },
-        {
-          "title": "Supported Bridge",
-          "instruction": "Lift the hips and slide a cushion under them; rest your weight onto it.",
-          "durationSec": 60
-        },
-        {
-          "title": "Corpse Pose",
-          "instruction": "Release everything and lie flat for a few slow breaths to finish.",
-          "durationSec": 60
-        }
+        { "title": "Knees to Chest", "instruction": "On your back, hug both knees in and gently rock side to side.", "durationSec": 40 },
+        { "title": "Supported Bridge", "instruction": "Lift the hips and slide a cushion under them; rest your weight onto it.", "durationSec": 60 },
+        { "title": "Corpse Pose", "instruction": "Release everything and lie flat for a few slow breaths to finish.", "durationSec": 60 }
       ]
     }
   ]

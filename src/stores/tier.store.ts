@@ -10,6 +10,7 @@ import { countDistinctLaunchDays } from "@/db/usage";
 import { countProfiles } from "@/db/profiles";
 import { countGoals } from "@/db/goals";
 import { countMetrics, countDistinctMetricDays } from "@/db/metrics";
+import { grantStatus } from "@/grant/receiver";
 import {
   EMPTY_TIER_CONTEXT,
   resolveTier,
@@ -59,6 +60,9 @@ export const useTierStore = create<TierState>((set) => ({
         countMetrics(),
       ]);
       const allFeaturesUsed = profiles > 0 && metrics > 0 && goals > 0;
+      // Grant tiers come from a received, signed grant file (receive-only — see
+      // src/grant/receiver.ts). Absent ⇒ both false (earned ladder only).
+      const grant = grantStatus();
       set({
         ctx: {
           distinctDays: days,
@@ -67,8 +71,8 @@ export const useTierStore = create<TierState>((set) => ({
           goalCount: goals,
           usedImport: false, // wired in Phase 2 (import)
           allFeaturesUsed,
-          isSupporter: false, // wired in Phase 4 (patron file)
-          isPro: false,
+          isSupporter: grant.supporter,
+          isPro: grant.pro,
         },
         loaded: true,
       });

@@ -10,6 +10,7 @@ import { countMetrics, countDistinctMetricDays } from "@/db/metrics";
 import { countDistinctLaunchDays } from "@/db/usage";
 import { reachedTier, EMPTY_TIER_CONTEXT } from "@/lib/gamification";
 import { tierOverride, flagsForTier } from "@/lib/tierOverride";
+import { grantStatus } from "@/grant/receiver";
 import type { GatingFlags } from "@/lib/featureGate";
 
 const UNLOCKED_ALL: GatingFlags = {
@@ -33,6 +34,12 @@ const LOCKED: GatingFlags = {
 export const useGatingStore = createGatingStore<GatingFlags>({
   initialFlags: LOCKED,
   unlockedAll: UNLOCKED_ALL,
+  // A received Supporter/Pro grant unlocks every feature (donation only accelerates
+  // the free ladder — see src/grant/receiver.ts). Skips the per-feature computation.
+  override: async () => {
+    const g = grantStatus();
+    return g.supporter || g.pro;
+  },
   computeFlags: async () => {
     // Dev/QA: a tier override pins the gates (also handled in the refresh wrapper
     // below for the browser-preview path, which skips computeFlags entirely).

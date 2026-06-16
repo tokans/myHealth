@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GATES, gateVisibility, type GatingFlags, type GateKey } from "./featureGate";
+import { GATES, gateVisibility, tierVisibility, type GatingFlags, type GateKey } from "./featureGate";
 
 const LOCKED: GatingFlags = {
   hasProfile: false,
@@ -33,7 +33,7 @@ describe("GATES config invariants", () => {
 
 describe("gate unlock predicates", () => {
   it("Tracker-tier features open at Tracker", () => {
-    const trackerGates: GateKey[] = ["goals", "schedule", "trends", "yoga"];
+    const trackerGates: GateKey[] = ["goals", "schedule", "trends"];
     for (const k of trackerGates) {
       expect(GATES[k].isUnlocked(LOCKED)).toBe(false);
       expect(GATES[k].isUnlocked(flags({ isTracker: true }))).toBe(true);
@@ -62,7 +62,7 @@ describe("gate unlock predicates", () => {
 });
 
 describe("gateVisibility — reveal exactly one tier ahead", () => {
-  const TRACKER: GateKey[] = ["goals", "schedule", "trends", "yoga"];
+  const TRACKER: GateKey[] = ["goals", "schedule", "trends"];
   const CARETAKER: GateKey[] = ["medications", "documents", "ice"];
   const CHAMPION: GateKey[] = ["directory", "sync", "items"];
 
@@ -94,5 +94,15 @@ describe("gateVisibility — reveal exactly one tier ahead", () => {
   it("prerequisite gates (family) follow their static lockBehavior", () => {
     expect(gateVisibility("family", LOCKED)).toBe("nudge");
     expect(gateVisibility("family", flags({ hasProfile: true }))).toBe("open");
+  });
+});
+
+describe("tierVisibility — used by dynamic content tabs", () => {
+  it("reveals exactly one tier ahead, like gate tiers", () => {
+    expect(tierVisibility("tracker", LOCKED)).toBe("nudge"); // Starter, one below
+    expect(tierVisibility("caretaker", LOCKED)).toBe("hidden"); // two below
+    expect(tierVisibility("tracker", flags({ isTracker: true }))).toBe("open");
+    expect(tierVisibility("caretaker", flags({ isTracker: true }))).toBe("nudge");
+    expect(tierVisibility("champion", flags({ isTracker: true, isCaretaker: true }))).toBe("nudge");
   });
 });

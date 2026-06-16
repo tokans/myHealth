@@ -6,6 +6,7 @@ import { isTauri } from "@/lib/environment";
 import { recordLaunch } from "@/db/usage";
 import { initSharedDb } from "@/db/sharedDb";
 import { runHabitReminderSweep } from "@/lib/reminderSweep";
+import { runContentSync } from "@/content/updater";
 import { maybeSeedDev } from "@/dev/seed";
 import { useTierStore } from "@/stores/tier.store";
 import { useGatingStore } from "@/stores/gating.store";
@@ -24,9 +25,10 @@ const Medications = lazy(() => import("@/pages/Medications"));
 const Documents = lazy(() => import("@/pages/Documents"));
 const Ice = lazy(() => import("@/pages/Ice"));
 const Trends = lazy(() => import("@/pages/Trends"));
-const Yoga = lazy(() => import("@/pages/Yoga"));
+const Content = lazy(() => import("@/pages/Content"));
 const Journey = lazy(() => import("@/pages/Journey"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const Sync = lazy(() => import("@/pages/Sync"));
 const Placeholder = lazy(() =>
   import("@/pages/Placeholder").then((m) => ({ default: m.Placeholder })),
 );
@@ -58,13 +60,18 @@ export default function App() {
       }
       await Promise.all([hydrateSettings(), refreshTier(), refreshGating(), refreshProfiles()]);
 
-      // Raise habit reminders once the UI is idle so startup is never blocked.
-      const sweep = () => void runHabitReminderSweep();
+      // Once the UI is idle (so startup is never blocked): raise habit reminders and
+      // run the daily content sync (self-throttled to once/day — refreshes the remote
+      // content catalog + per-type bundles from the GitHub release, receive-only).
+      const onIdle = () => {
+        void runHabitReminderSweep();
+        void runContentSync();
+      };
       if (isTauri()) {
         const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void })
           .requestIdleCallback;
-        if (ric) ric(sweep);
-        else setTimeout(sweep, 2000);
+        if (ric) ric(onIdle);
+        else setTimeout(onIdle, 2000);
       }
     })();
   }, [hydrateSettings, refreshTier, refreshGating, refreshProfiles]);
@@ -85,7 +92,9 @@ export default function App() {
             <Route path="/documents" element={<Documents />} />
             <Route path="/ice" element={<Ice />} />
             <Route path="/trends" element={<Trends />} />
-            <Route path="/yoga" element={<Yoga />} />
+            <Route path="/content/:type" element={<Content />} />
+            {/* Old direct link kept working. */}
+            <Route path="/yoga" element={<Navigate to="/content/yoga" replace />} />
             {/* Import is now part of Documents (scan & extract on add) — redirect old links. */}
             <Route path="/import" element={<Navigate to="/documents" replace />} />
             <Route
@@ -100,6 +109,7 @@ export default function App() {
             />
             <Route path="/journey" element={<Journey />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/sync" element={<Sync />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>

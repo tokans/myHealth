@@ -5,12 +5,18 @@ interface ImportMetaEnv {
   readonly VITE_TIER?: string;
   /** Opt-in to honor VITE_TIER / ?tier in a PRODUCTION build (dev honors it always). */
   readonly VITE_ALLOW_TIER_OVERRIDE?: string;
-  /** Yoga OTA bundles: rolling GitHub-release base URL holding the newest bundle. */
-  readonly VITE_YOGA_BASE_URL?: string;
-  /** Yoga OTA bundles: Ed25519 signing public key (hex). Absent → downloads disabled. */
-  readonly VITE_YOGA_PUBKEY?: string;
-  /** Yoga OTA bundles: AES-256-GCM transport key (base64). Absent → downloads disabled. */
-  readonly VITE_YOGA_TRANSPORT_KEY?: string;
+  /** Content OTA: GitHub-releases download base URL (per-type tag appended). */
+  readonly VITE_CONTENT_BASE_URL?: string;
+  /** Content OTA: release tag holding the signed remote type catalog. */
+  readonly VITE_CONTENT_CATALOG_TAG?: string;
+  /** Content OTA: Ed25519 signing public key (hex). Absent → sync disabled. */
+  readonly VITE_CONTENT_PUBKEY?: string;
+  /** Content OTA: AES-256-GCM transport key (base64). Absent → sync disabled. */
+  readonly VITE_CONTENT_TRANSPORT_KEY?: string;
+  /** Grant: Ed25519 public key (hex) for support/pro grant files. Absent → grant import disabled. */
+  readonly VITE_GRANT_PUBKEY?: string;
+  /** Grant: AES-256-GCM transport key (base64) for grant files. Absent → grant import disabled. */
+  readonly VITE_GRANT_TRANSPORT_KEY?: string;
 }
 
 interface ImportMeta {

@@ -1,0 +1,20 @@
+{
+  "bundleId": "core-strength",
+  "name": "Core Strength",
+  "description": "A short core circuit to build midline stability.",
+  "version": 1,
+  "entries": [
+    {
+      "id": "ex-core-circuit",
+      "name": "Core Circuit",
+      "level": "intermediate",
+      "focus": "Core",
+      "summary": "Three moves, slow and controlled. Repeat the circuit twice.",
+      "steps": [
+        { "title": "Plank", "instruction": "Forearms down, body in a straight line. Hold and breathe.", "durationSec": 30 },
+        { "title": "Dead Bug", "instruction": "On your back, lower opposite arm and leg slowly, then switch.", "durationSec": 45 },
+        { "title": "Bird Dog", "instruction": "On hands and knees, extend opposite arm and leg, hold, switch.", "durationSec": 45 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "_comment": "Remote content-type catalog. Publish-only source (NOT bundled into the app). The daily content sync fetches a SIGNED build of this from the release tag 'content-catalog-latest' and registers any type whose key the app doesn't already ship — so a brand-new tab can appear without an app update. Baked types (yoga, exercises) need not be listed; they ship in the build. Build with: node scripts/build-content.mjs build-catalog.",
+  "types": [
+    {
+      "key": "meditation",
+      "label": "Meditation",
+      "iconName": "Brain",
+      "tier": "tracker",
+      "releaseTag": "content-meditation-latest",
+      "description": "Short guided breathing and meditation sessions.",
+      "entryNoun": "session",
+      "order": 30
+    }
+  ]
+}

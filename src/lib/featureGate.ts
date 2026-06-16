@@ -14,10 +14,19 @@
  * and so on. Prerequisite gates (e.g. "add a family member") are not tiered and
  * carry a static `lockBehavior` instead.
  *
- * The gate shape + store come from the shared core (`sharedcorelib/gating`); this
- * file supplies myHealth's flag shape, gate copy, and tier/lock metadata.
+ * The gate shape, the store, AND the one-tier-ahead disclosure rule all come from
+ * the shared core (`sharedcorelib/gating`); this file supplies myHealth's flag
+ * shape, gate copy, tier/lock metadata, and the app's tier ranking.
  */
-import type { FeatureGate } from "sharedcorelib/gating";
+import {
+  gateVisibility as coreGateVisibility,
+  tierVisibility as coreTierVisibility,
+  type TieredGate,
+  type TierDisclosure,
+  type GateVisibility,
+} from "sharedcorelib/gating";
+
+export type { GateVisibility };
 
 /** Boolean prerequisites progressive features gate on (computed in gating.store). */
 export interface GatingFlags {
@@ -41,7 +50,6 @@ export type GateKey =
   | "documents"
   | "ice"
   | "trends"
-  | "yoga"
   | "directory"
   | "sync"
   | "items";
@@ -49,20 +57,12 @@ export type GateKey =
 /** Earned tiers a feature can require. Ordered low → high (grant tiers don't gate disclosure). */
 export type EarnedTier = "tracker" | "caretaker" | "champion";
 
-export interface HealthGate extends FeatureGate<GatingFlags, GateKey> {
-  /**
-   * The earned tier this feature unlocks at. When set, visibility follows the
-   * "one tier ahead" rule (`gateVisibility`): teased (nudge) one tier below,
-   * hidden further down. Mutually exclusive with `lockBehavior`.
-   */
-  tier?: EarnedTier;
-  /**
-   * Static lock behavior for a PREREQUISITE (non-tier) gate — e.g. "add a family
-   * member" depends on having your own profile, not on a tier. Ignored when
-   * `tier` is set.
-   */
-  lockBehavior?: "nudge" | "hide";
-}
+/**
+ * A myHealth feature gate = the core {@link TieredGate} specialised to our flags,
+ * gate keys, and earned tiers. `tier` (one-tier-ahead disclosure) and `lockBehavior`
+ * (static, for prerequisite gates) come from the core type and stay mutually exclusive.
+ */
+export type HealthGate = TieredGate<GatingFlags, GateKey, EarnedTier>;
 
 export const GATES: Record<GateKey, HealthGate> = {
   goals: {
@@ -98,15 +98,6 @@ export const GATES: Record<GateKey, HealthGate> = {
     tier: "tracker",
     lockedTitle: "Trends & charts",
     unlockHint: "Reach the Tracker tier to see trends.",
-    ctaLabel: "View your journey",
-    ctaTo: "/journey",
-  },
-  yoga: {
-    key: "yoga",
-    isUnlocked: (f) => f.isTracker,
-    tier: "tracker",
-    lockedTitle: "Yoga sequences",
-    unlockHint: "Reach the Tracker tier to follow guided yoga sequences.",
     ctaLabel: "View your journey",
     ctaTo: "/journey",
   },
@@ -178,25 +169,27 @@ function earnedRank(flags: GatingFlags): number {
   return rank;
 }
 
-export type GateVisibility = "open" | "nudge" | "hidden";
+/** myHealth's tier knowledge, injected into the core disclosure resolvers. */
+const DISCLOSURE: TierDisclosure<GatingFlags, EarnedTier> = {
+  rankOf: (tier) => TIER_RANK[tier],
+  clearedRank: earnedRank,
+};
 
 /**
- * Progressive-disclosure visibility for a gate given the live flags:
- *
- *   open   — unlocked; render normally.
- *   nudge  — locked but teased with a CTA; shown ONLY one tier ahead.
- *   hidden — locked and not rendered; two or more tiers ahead.
- *
- * Tier gates reveal exactly one tier at a time, so the surface grows with the
- * user. Prerequisite gates fall back to their static `lockBehavior`.
+ * Progressive-disclosure visibility for an earned TIER (the core one-tier-ahead
+ * rule with myHealth's ranking): open at/above the tier, nudge exactly one tier
+ * ahead, hidden further down. Used by tier-gated features (`gateVisibility`) and
+ * the dynamic content tabs (each carries a `tier`).
+ */
+export function tierVisibility(tier: EarnedTier, flags: GatingFlags): GateVisibility {
+  return coreTierVisibility(tier, flags, DISCLOSURE);
+}
+
+/**
+ * Progressive-disclosure visibility for a gate (by key). Tier gates defer to
+ * {@link tierVisibility}; prerequisite (data-presence) gates honor their static
+ * `lockBehavior`.
  */
 export function gateVisibility(gateKey: GateKey, flags: GatingFlags): GateVisibility {
-  const gate = GATES[gateKey];
-  if (gate.isUnlocked(flags)) return "open";
-  if (gate.tier) {
-    // Tease the next tier up (gap === 1); hide anything further up the ladder.
-    return TIER_RANK[gate.tier] - earnedRank(flags) <= 1 ? "nudge" : "hidden";
-  }
-  // Prerequisite (data-presence) gate: honor its static behavior.
-  return gate.lockBehavior === "nudge" ? "nudge" : "hidden";
+  return coreGateVisibility(GATES[gateKey], flags, DISCLOSURE);
 }

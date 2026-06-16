@@ -113,10 +113,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         centralIcon={HeartPulse}
         onReportIssue={() => setReportOpen(true)}
         actions={actions}
-        sidebarTop={<div className="px-3 pt-1"><TierBadge /></div>}
-        moreHeader={<TierBadge />}
         userSwitch={userSwitch}
-        profile={<ProfileMenu onReport={() => setReportOpen(true)} />}
+        profile={
+          <div className="flex items-center gap-2">
+            <TierBadge />
+            <ProfileMenu onReport={() => setReportOpen(true)} />
+          </div>
+        }
         onExternal={(href) => void openExternal(href)}
         contentClassName="mx-auto max-w-3xl"
       >

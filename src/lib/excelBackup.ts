@@ -35,11 +35,6 @@ export async function saveBackupFile(bytes: Uint8Array, fileName: string): Promi
     await writeFile(demoName, bytes, { baseDir: BaseDirectory.AppData });
     return;
   }
-  const { save } = await import("@tauri-apps/plugin-dialog");
-  const path = await save({
-    defaultPath: fileName,
-    filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
-  });
-  if (!path) throw new Error("Export cancelled — no file chosen.");
-  await writeFile(path, bytes);
+  const { saveBytesToFile } = await import("@/lib/fileSave");
+  await saveBytesToFile(bytes, fileName, [{ name: "Excel workbook", extensions: ["xlsx"] }]);
 }

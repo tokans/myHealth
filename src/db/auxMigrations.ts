@@ -101,4 +101,13 @@ export const MYHEALTH_AUX_MIGRATIONS: AuxMigrationStep[] = [
       `INSERT OR IGNORE INTO myhealth_settings (key, value) VALUES ('theme', 'system')`,
     ],
   },
+  {
+    // v2 — append-only (do NOT edit v1). A covering index on taken_at alone so the
+    // tier/gating recompute's `COUNT(DISTINCT substr(taken_at,1,10))` (no WHERE, all
+    // profiles) can scan the narrow index instead of the full table. The existing
+    // (profile_id, kind, taken_at) index is leftmost-prefixed on profile_id, so it
+    // can't serve this unfiltered distinct-day scan.
+    version: 2,
+    sql: [`CREATE INDEX IF NOT EXISTS ix_myhealth_metrics_taken ON myhealth_metrics (taken_at)`],
+  },
 ];

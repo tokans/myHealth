@@ -37,6 +37,20 @@ export async function listMetrics(profileId: number, kind: string): Promise<Metr
   );
 }
 
+/**
+ * All readings for a set of metric kinds for one profile, in a SINGLE query — so the
+ * Goals page projects N goals without N round-trips (was one listMetrics() per goal).
+ * Ordered by kind then time so callers can group in one pass.
+ */
+export async function listMetricsForKinds(profileId: number, kinds: string[]): Promise<Metric[]> {
+  if (kinds.length === 0) return [];
+  const placeholders = kinds.map((_, i) => `?${i + 2}`).join(", ");
+  return query<Metric>(
+    `SELECT * FROM ${T.metrics} WHERE profile_id = ?1 AND kind IN (${placeholders}) ORDER BY kind ASC, taken_at ASC`,
+    [profileId, ...kinds],
+  );
+}
+
 /** The most recent reading for each metric kind for a profile. */
 export async function latestMetrics(profileId: number): Promise<Metric[]> {
   return query<Metric>(
@@ -52,7 +66,7 @@ export async function latestMetrics(profileId: number): Promise<Metric[]> {
 /** One profile's readings across all kinds — for the Excel export. */
 export async function listMetricsForProfile(profileId: number): Promise<Metric[]> {
   return query<Metric>(
-    `SELECT * FROM metrics WHERE profile_id = ?1 ORDER BY kind ASC, taken_at ASC`,
+    `SELECT * FROM ${T.metrics} WHERE profile_id = ?1 ORDER BY kind ASC, taken_at ASC`,
     [profileId],
   );
 }
@@ -63,7 +77,7 @@ export async function updateMetric(
   m: { profile_id: number; kind: string; value: number; unit: string | null; taken_at: string; note: string | null },
 ): Promise<void> {
   await execute(
-    `UPDATE metrics SET profile_id = ?2, kind = ?3, value = ?4, unit = ?5, taken_at = ?6, note = ?7
+    `UPDATE ${T.metrics} SET profile_id = ?2, kind = ?3, value = ?4, unit = ?5, taken_at = ?6, note = ?7
        WHERE id = ?1`,
     [id, m.profile_id, m.kind, m.value, m.unit, m.taken_at, m.note],
   );

@@ -101,10 +101,11 @@ export function createHealthPeople(db: SqlDb): HealthPeople {
       await facets.ensure();
     },
     async list() {
-      const people = await entities.listPeople();
-      const out: PersonWithFacet[] = [];
-      for (const person of people) out.push({ person, facet: await facets.get(person.person_key) });
-      return out;
+      // Two queries (people + all facets) joined in memory, not one facet query per
+      // person — the old loop was an N+1 that ran on every tier-refresh / break-glass path.
+      const [people, allFacets] = await Promise.all([entities.listPeople(), facets.list()]);
+      const byKey = new Map(allFacets.map((f) => [f.person_key, f]));
+      return people.map((person) => ({ person, facet: byKey.get(person.person_key) ?? null }));
     },
     get,
     async upsertPerson(input) {

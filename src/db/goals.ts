@@ -71,7 +71,7 @@ export async function updateGoal(
   },
 ): Promise<void> {
   await execute(
-    `UPDATE goals SET profile_id = ?2, kind = ?3, title = ?4, metric_kind = ?5, baseline = ?6,
+    `UPDATE ${T.goals} SET profile_id = ?2, kind = ?3, title = ?4, metric_kind = ?5, baseline = ?6,
        target = ?7, unit = ?8, direction = ?9, target_date = ?10, status = ?11
        WHERE id = ?1`,
     [

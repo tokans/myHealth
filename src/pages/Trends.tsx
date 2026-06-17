@@ -111,6 +111,16 @@ function TrendsInner() {
   );
 }
 
+// Static recharts props hoisted to module scope so they aren't re-allocated on every
+// chart render (helps recharts' internal prop-diff memoization skip work).
+const CHART_MARGIN = { top: 8, right: 12, left: -8, bottom: 0 } as const;
+const AXIS_TICK = { fontSize: 11 } as const;
+const Y_DOMAIN = ["auto", "auto"] as ["auto", "auto"];
+const TOOLTIP_STYLE = { fontSize: 12 } as const;
+const LINE_DOT = { r: 2 } as const;
+const LINE_ACTIVE_DOT = { r: 4 } as const;
+const dateTickFormatter = (d: string) => d.slice(5);
+
 function TrendChart({
   points,
   unit,
@@ -120,18 +130,15 @@ function TrendChart({
   unit: string;
   range: ReturnType<typeof referenceRange>;
 }) {
+  const valueFormatter = useMemo(() => (v: number) => [`${v} ${unit}`, ""] as [string, string], [unit]);
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={points} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+        <LineChart data={points} margin={CHART_MARGIN}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-          <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5)} />
-          <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} width={36} />
-          <Tooltip
-            formatter={(v: number) => [`${v} ${unit}`, ""]}
-            labelClassName="text-xs"
-            contentStyle={{ fontSize: 12 }}
-          />
+          <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={dateTickFormatter} />
+          <YAxis tick={AXIS_TICK} domain={Y_DOMAIN} width={36} />
+          <Tooltip formatter={valueFormatter} labelClassName="text-xs" contentStyle={TOOLTIP_STYLE} />
           {range && (
             <ReferenceArea
               y1={range.low}
@@ -146,8 +153,8 @@ function TrendChart({
             dataKey="value"
             stroke="hsl(var(--primary))"
             strokeWidth={2}
-            dot={{ r: 2 }}
-            activeDot={{ r: 4 }}
+            dot={LINE_DOT}
+            activeDot={LINE_ACTIVE_DOT}
             isAnimationActive={false}
           />
         </LineChart>

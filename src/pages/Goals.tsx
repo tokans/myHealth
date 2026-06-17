@@ -8,7 +8,7 @@ import { FeatureGuard } from "@/components/feature/FeatureGuard";
 import { isTauri } from "@/lib/environment";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { listGoals, createGoal, archiveGoal, type Goal } from "@/db/goals";
-import { listMetrics } from "@/db/metrics";
+import { listMetricsForKinds } from "@/db/metrics";
 import { ExcelButtons } from "@/components/feature/ExcelButtons";
 import { FEATURE_EXCEL } from "@/lib/featureExcel";
 import { projectGoal, type GoalDirection, type GoalProjection } from "@/domain/goals";
@@ -37,24 +37,28 @@ function GoalsInner() {
     if (!profile || !isTauri()) return;
     const gs = await listGoals(profile.id);
     setGoals(gs);
-    const entries = await Promise.all(
-      gs.map(async (g) => {
-        if (!g.metric_kind || g.target == null) return [g.id, null] as const;
-        const points = (await listMetrics(profile.id, g.metric_kind)).map((m) => ({
-          date: m.taken_at.slice(0, 10),
-          value: m.value,
-        }));
-        return [
-          g.id,
-          projectGoal(points, {
-            baseline: g.baseline,
-            target: g.target,
-            direction: g.direction,
-            targetDate: g.target_date,
-          }),
-        ] as const;
-      }),
-    );
+    // One query for every metric kind any goal tracks, then group in memory — replaces
+    // the old one-query-per-goal N+1 (a stall on profiles with many goals).
+    const kinds = [...new Set(gs.map((g) => g.metric_kind).filter((k): k is string => !!k))];
+    const points = new Map<string, { date: string; value: number }[]>();
+    for (const m of await listMetricsForKinds(profile.id, kinds)) {
+      (points.get(m.kind) ?? points.set(m.kind, []).get(m.kind)!).push({
+        date: m.taken_at.slice(0, 10),
+        value: m.value,
+      });
+    }
+    const entries = gs.map((g) => {
+      if (!g.metric_kind || g.target == null) return [g.id, null] as const;
+      return [
+        g.id,
+        projectGoal(points.get(g.metric_kind) ?? [], {
+          baseline: g.baseline,
+          target: g.target,
+          direction: g.direction,
+          targetDate: g.target_date,
+        }),
+      ] as const;
+    });
     setProj(Object.fromEntries(entries.filter(([, p]) => p) as [number, GoalProjection][]));
   }
 

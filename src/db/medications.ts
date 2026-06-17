@@ -74,7 +74,7 @@ export interface MedicationFields {
 /** Insert a fully-specified medication (Excel import, add-new path). */
 export async function createMedicationFull(m: MedicationFields): Promise<number> {
   const res = await execute(
-    `INSERT INTO medications (profile_id, drug, strength, form, schedule, times, prescriber, start_date, end_date, notes, active)
+    `INSERT INTO ${T.medications} (profile_id, drug, strength, form, schedule, times, prescriber, start_date, end_date, notes, active)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`,
     [m.profile_id, m.drug, m.strength, m.form, m.schedule, m.times, m.prescriber, m.start_date, m.end_date, m.notes, m.active],
   );
@@ -84,7 +84,7 @@ export async function createMedicationFull(m: MedicationFields): Promise<number>
 /** Update an existing medication (Excel import, update-by-ID path). */
 export async function updateMedication(id: number, m: MedicationFields): Promise<void> {
   await execute(
-    `UPDATE medications SET profile_id = ?2, drug = ?3, strength = ?4, form = ?5, schedule = ?6,
+    `UPDATE ${T.medications} SET profile_id = ?2, drug = ?3, strength = ?4, form = ?5, schedule = ?6,
        times = ?7, prescriber = ?8, start_date = ?9, end_date = ?10, notes = ?11, active = ?12
        WHERE id = ?1`,
     [id, m.profile_id, m.drug, m.strength, m.form, m.schedule, m.times, m.prescriber, m.start_date, m.end_date, m.notes, m.active],

@@ -24,6 +24,14 @@ export default defineConfig({
     target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari15",
     minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    // Heavy, on-demand-only vendor chunks (OCR engine, SheetJS, charts) must never get
+    // a <link modulepreload> on first paint — they belong to lazy routes/actions and
+    // would otherwise be eagerly downloaded. modulepreload is only a hint, so dropping
+    // these entries is safe: the chunks still load when their dynamic import runs.
+    modulePreload: {
+      resolveDependencies: (_file, deps) =>
+        deps.filter((d) => !/[\\/]vendor-(ocr|xlsx|charts)-/.test(d)),
+    },
     rollupOptions: {
       output: {
         // Split the single large entry bundle into cacheable vendor chunks so no
@@ -41,6 +49,11 @@ export default defineConfig({
             return "vendor-react";
           if (/[\\/]node_modules[\\/]@tanstack[\\/]/.test(id)) return "vendor-query";
           if (/[\\/]node_modules[\\/](tesseract\.js|pdfjs-dist)[\\/]/.test(id)) return "vendor-ocr";
+          // recharts + its d3 deps are heavy (~500 KB) and used ONLY by the lazy Trends
+          // page. Without this rule they fall into the catch-all "vendor" chunk, which IS
+          // eager (it also holds first-paint deps), dragging charts onto first paint.
+          if (/[\\/]node_modules[\\/](recharts|d3-[^\\/]+|victory-vendor|internmap)[\\/]/.test(id))
+            return "vendor-charts";
           if (/[\\/]node_modules[\\/](@radix-ui|lucide-react|react-hook-form)[\\/]/.test(id))
             return "vendor-ui";
           if (/[\\/]node_modules[\\/](zod|date-fns|@noble)[\\/]/.test(id)) return "vendor-utils";

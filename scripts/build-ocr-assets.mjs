@@ -23,7 +23,7 @@
  */
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
-import { mkdirSync, copyFileSync, writeFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync, existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { get } from "node:https";
@@ -47,15 +47,32 @@ function copyAssets() {
   if (!existsSync(worker)) throw new Error(`Missing ${worker} — run npm install first.`);
   copyFileSync(worker, join(PUBLIC_OCR, "worker.min.js"));
 
-  // 2) tesseract.js-core: copy every tesseract-core* .js/.wasm so the loader can pick
-  //    the SIMD vs non-SIMD variant it needs at runtime (corePath is a directory).
+  // 2) tesseract.js-core: copy ONLY the two cores we can actually load. Three facts
+  //    make 12 of the 14 shipped files dead weight on every platform bundle:
+  //      (a) corePath is a DIRECTORY (`/ocr/`), so tesseract's worker loads a
+  //          `tesseract-core[-simd]-lstm.wasm.js` via importScripts — never the bare
+  //          `.wasm` (those are only fetched when corePath ends in a specific file) nor
+  //          the small `.js` shims. Each `.wasm.js` EMBEDS its wasm as base64, so it is
+  //          self-contained.
+  //      (b) scandoc requests OEM.LSTM_ONLY (`createWorker(lang, 1, …)`), so the loader
+  //          always picks the `-lstm` core — the legacy/full `tesseract-core.wasm.js`
+  //          and `tesseract-core-simd.wasm.js` are never selected.
+  //      (c) the only runtime branch left is SIMD-vs-not, so we keep both LSTM cores.
+  //    Result: ~22 MB pruned from the APK/IPA/installer (was ~31 MB, now ~9 MB) with
+  //    no behavior change. If any of (a)/(b) changes upstream, widen this list.
   const coreDir = join(NM, "tesseract.js-core");
+  const CORE_FILES = ["tesseract-core-simd-lstm.wasm.js", "tesseract-core-lstm.wasm.js"];
+  // Remove any stale tesseract-core* files from a previous (wider) copy so we don't
+  // ship pruned variants left behind in the generated public/ocr/ dir.
+  for (const f of readdirSync(PUBLIC_OCR)) {
+    if (/^tesseract-core/.test(f) && !CORE_FILES.includes(f)) rmSync(join(PUBLIC_OCR, f));
+  }
   let coreCount = 0;
-  for (const f of readdirSync(coreDir)) {
-    if (/^tesseract-core.*\.(js|wasm)$/.test(f)) {
-      copyFileSync(join(coreDir, f), join(PUBLIC_OCR, f));
-      coreCount++;
-    }
+  for (const f of CORE_FILES) {
+    const src = join(coreDir, f);
+    if (!existsSync(src)) throw new Error(`Missing ${src} — run npm install first.`);
+    copyFileSync(src, join(PUBLIC_OCR, f));
+    coreCount++;
   }
 
   // 3) pdf.js legacy worker (named to match OCR_PDF_WORKER_SRC).

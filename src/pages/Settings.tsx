@@ -189,16 +189,21 @@ export default function Settings() {
               Backup runs in the desktop app — start it with <code>npm run tauri:dev</code>.
             </p>
           ) : backup ? (
-            <BackupPanel
-              backup={backup}
-              save={saveBackupFile}
-              onImported={() => {
-                void refreshProfiles();
-                void refreshTier();
-                void refreshGating();
-              }}
-              className="border-0 bg-transparent p-0"
-            />
+            <>
+              <BackupPanel
+                backup={backup}
+                save={saveBackupFile}
+                onImported={() => {
+                  void refreshProfiles();
+                  void refreshTier();
+                  void refreshGating();
+                }}
+                className="border-0 bg-transparent p-0"
+              />
+              <p className="mt-3 text-xs text-muted-foreground">
+                Files can be saved to your Desktop, Documents, or Downloads folder.
+              </p>
+            </>
           ) : (
             <p className="text-xs text-muted-foreground">Preparing backup engine…</p>
           )}

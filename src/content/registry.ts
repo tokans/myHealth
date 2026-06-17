@@ -6,6 +6,7 @@
  *
  * Dropping a new `content/<type>/index.ts` folder adds a tab with no other wiring.
  */
+import { useMemo } from "react";
 import { collectBakedTypes, mergeTypes as coreMergeTypes, findContentType } from "sharedcorelib/content";
 import { useContentStore } from "@/stores/content.store";
 import { resolveIcon } from "@/content/icons";
@@ -32,5 +33,7 @@ export function allContentTypes(): ContentType[] {
 /** Reactive merged content types (re-renders when the remote catalog changes). */
 export function useContentTypes(): ContentType[] {
   const remote = useContentStore((s) => s.remoteTypes);
-  return mergeTypes(BAKED_CONTENT_TYPES, remote);
+  // Recompute the merge only when the remote catalog actually changes — this hook feeds
+  // AppShell's nav rebuild, so a fresh array every render would churn that hot path.
+  return useMemo(() => mergeTypes(BAKED_CONTENT_TYPES, remote), [remote]);
 }

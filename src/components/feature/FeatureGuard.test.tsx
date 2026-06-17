@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-// The gating store is called with no selector in FeatureGuard; it returns the
-// whole flags object, on which GATES[key].isUnlocked(flags) is evaluated.
-vi.mock("@/stores/gating.store", () => ({ useGatingStore: vi.fn() }));
+// FeatureGuard reads the gating flags via the shallow `useGatingFlags` selector; it
+// returns the flags object, on which GATES[key].isUnlocked(flags) is evaluated.
+vi.mock("@/stores/gating.store", () => ({ useGatingStore: vi.fn(), useGatingFlags: vi.fn() }));
 
 import { FeatureGuard, LockedFeature } from "./FeatureGuard";
-import { useGatingStore } from "@/stores/gating.store";
+import { useGatingFlags } from "@/stores/gating.store";
 import { GATES } from "@/lib/featureGate";
 import { useProfileStore } from "@/stores/profile.store";
 import type { Profile } from "@/db/profiles";
@@ -22,7 +22,7 @@ const ALL_LOCKED = {
 };
 
 function setFlags(flags: Partial<typeof ALL_LOCKED>) {
-  (useGatingStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+  (useGatingFlags as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
     ...ALL_LOCKED,
     ...flags,
   });
@@ -34,7 +34,7 @@ function renderInRouter(ui: React.ReactNode) {
 
 describe("FeatureGuard", () => {
   beforeEach(() => {
-    (useGatingStore as unknown as ReturnType<typeof vi.fn>).mockReset();
+    (useGatingFlags as unknown as ReturnType<typeof vi.fn>).mockReset();
     // Reset the profile store so the member-class soft gate defaults to owner (allowed).
     useProfileStore.setState({ profiles: [], activeId: null, loading: false, loaded: true });
   });

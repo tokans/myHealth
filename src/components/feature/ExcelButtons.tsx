@@ -28,12 +28,22 @@ async function saveBytes(bytes: Uint8Array, fileName: string): Promise<boolean> 
     return true;
   }
   const { save } = await import("@tauri-apps/plugin-dialog");
-  const path = await save({
-    defaultPath: fileName,
-    filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
-  });
+  const { SAVE_FOLDERS_HINT } = await import("@/lib/fileSave");
+  // Default to Documents so the dialog opens in a folder the app is allowed to write to.
+  let defaultPath = fileName;
+  try {
+    const { documentDir, join } = await import("@tauri-apps/api/path");
+    defaultPath = await join(await documentDir(), fileName);
+  } catch {
+    /* path API unavailable — fall back to a bare filename */
+  }
+  const path = await save({ defaultPath, filters: [{ name: "Excel workbook", extensions: ["xlsx"] }] });
   if (!path) return false;
-  await writeFile(path, bytes);
+  try {
+    await writeFile(path, bytes);
+  } catch (e) {
+    throw new Error(`Couldn't save to that location. ${SAVE_FOLDERS_HINT}`, { cause: e });
+  }
   return true;
 }
 
@@ -96,7 +106,7 @@ export function ExcelButtons({
       }
     } catch (e) {
       console.warn("excel export failed:", e);
-      setToast({ kind: "error", line: "Export failed.", warnings: [] });
+      setToast({ kind: "error", line: e instanceof Error ? e.message : "Export failed.", warnings: [] });
     } finally {
       setBusy(null);
     }

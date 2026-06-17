@@ -78,7 +78,7 @@ export async function syncDerivedReminders(desired: DerivedReminder[]): Promise<
  */
 export async function listRemindersForExport(profileId: number): Promise<Reminder[]> {
   return query<Reminder>(
-    `SELECT * FROM reminders
+    `SELECT * FROM ${T.reminders}
        WHERE profile_id = ?1 AND (kind = 'manual' OR status = 'open')
        ORDER BY due_date ASC, id ASC`,
     [profileId],
@@ -91,7 +91,7 @@ export async function updateManualReminder(
   r: { profile_id: number | null; title: string; detail: string | null; due_date: string; status: Reminder["status"] },
 ): Promise<void> {
   await execute(
-    `UPDATE reminders SET profile_id = ?2, title = ?3, detail = ?4, due_date = ?5, status = ?6
+    `UPDATE ${T.reminders} SET profile_id = ?2, title = ?3, detail = ?4, due_date = ?5, status = ?6
        WHERE id = ?1 AND kind = 'manual'`,
     [id, r.profile_id, r.title, r.detail, r.due_date, r.status],
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell, Check, Clock, X, Plus } from "lucide-react";
 import { bucketFor, dueLabel, byDueDate, addDaysISO, type ReminderBucket } from "sharedcorelib/reminders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,10 +62,16 @@ export default function Reminders() {
     await load();
   }
 
-  const grouped = BUCKET_ORDER.map((b) => ({
-    bucket: b,
-    rows: items.filter((r) => bucketFor(r, today) === b),
-  })).filter((g) => g.rows.length > 0);
+  // Re-bucket only when the items or the day change (was an O(buckets×items) re-filter
+  // on every render — and this page re-renders on each reminder action).
+  const grouped = useMemo(
+    () =>
+      BUCKET_ORDER.map((b) => ({
+        bucket: b,
+        rows: items.filter((r) => bucketFor(r, today) === b),
+      })).filter((g) => g.rows.length > 0),
+    [items, today],
+  );
 
   return (
     <div className="space-y-6">

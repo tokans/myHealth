@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Heart, HeartPulse, LayoutGrid } from "lucide-react";
 import { SuiteShell, type SuiteNavItem, type SuiteAction } from "sharedcorelib/ui";
 import { cn } from "@/lib/utils";
 import { buildNav, type NavItem } from "@/lib/nav";
-import { GATES, gateVisibility, tierVisibility, type EarnedTier } from "@/lib/featureGate";
+import { GATES, gateVisibility, tierVisibility, type EarnedTier, type GatingFlags } from "@/lib/featureGate";
 import { useContentTypes } from "@/content/registry";
 import { openExternal } from "@/lib/openExternal";
 import { openDonatePage } from "@/lib/donate";
 import { reachedTier } from "@/lib/gamification";
 import { ReportIssueDialog } from "@/components/feedback/ReportIssueDialog";
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
-import { useGatingStore } from "@/stores/gating.store";
+import { useGatingFlags } from "@/stores/gating.store";
 import { useTierStore, selectTier } from "@/stores/tier.store";
 import { useMemberSwitch } from "@/lib/useMemberSwitch";
 
@@ -21,7 +21,7 @@ const TIER_LABEL: Record<EarnedTier, string> = {
 };
 
 /** Visibility decision for a nav item given the live gating flags (one tier ahead nudges). */
-function navState(item: NavItem, flags: ReturnType<typeof useGatingStore.getState>) {
+function navState(item: NavItem, flags: GatingFlags) {
   if (item.tier) return tierVisibility(item.tier, flags);
   if (item.gate) return gateVisibility(item.gate, flags);
   return "open" as const;
@@ -47,7 +47,7 @@ function TierBadge() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const flags = useGatingStore();
+  const flags = useGatingFlags();
   const contentTypes = useContentTypes();
   const tierCtx = useTierStore((s) => s.ctx);
   const [reportOpen, setReportOpen] = useState(false);
@@ -65,29 +65,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // is unaffected and keeps working exactly as today.
   const userSwitch = useMemberSwitch();
 
-  // Static nav with the dynamic content tabs (Yoga, Exercises, …) spliced in.
-  const allNav = buildNav(contentTypes);
+  // Static nav with the dynamic content tabs (Yoga, Exercises, …) spliced in. Rebuilt only
+  // when the content types change (not on every render).
+  const allNav = useMemo(() => buildNav(contentTypes), [contentTypes]);
 
   // Visible nav (drop "hidden" items), with the precomputed open/nudge state the shell needs.
-  const nav: SuiteNavItem[] = allNav
-    .map((it) => ({ it, state: navState(it, flags) }))
-    .filter(({ state }) => state !== "hidden")
-    .map(({ it, state }) => ({
-      to: it.to,
-      label: it.label,
-      icon: it.icon,
-      home: it.to === "/",
-      end: it.to === "/",
-      state: state as "open" | "nudge",
-      lockHint: state === "nudge" ? lockHint(it) : undefined,
-    }));
+  // Recomputed only when the nav set or the gating flag VALUES change (rare), not on every
+  // store touch — the two tree-walks below used to run on every refresh().
+  const nav: SuiteNavItem[] = useMemo(
+    () =>
+      allNav
+        .map((it) => ({ it, state: navState(it, flags) }))
+        .filter(({ state }) => state !== "hidden")
+        .map(({ it, state }) => ({
+          to: it.to,
+          label: it.label,
+          icon: it.icon,
+          home: it.to === "/",
+          end: it.to === "/",
+          state: state as "open" | "nudge",
+          lockHint: state === "nudge" ? lockHint(it) : undefined,
+        })),
+    [allNav, flags],
+  );
 
   // Mobile center button = the raised heart FAB → a bottom sheet of the `central` destinations
   // (Reminders / Goals / Schedule + content tabs). Gated items appear only once unlocked ("open");
   // while locked they stay in "More" as a nudge. The shell renders 1 action as a plain button, 2+ as the FAB.
-  const centralActions: SuiteAction[] = allNav
-    .filter((it) => it.central && navState(it, flags) === "open")
-    .map((it) => ({ key: it.to, label: it.label, icon: it.icon, to: it.to }));
+  const centralActions: SuiteAction[] = useMemo(
+    () =>
+      allNav
+        .filter((it) => it.central && navState(it, flags) === "open")
+        .map((it) => ({ key: it.to, label: it.label, icon: it.icon, to: it.to })),
+    [allNav, flags],
+  );
 
   // Report an issue is suite-standard chrome rendered by SuiteShell itself (`onReportIssue`),
   // and these app-specific actions render right after it (More drawer + sidebar footer).

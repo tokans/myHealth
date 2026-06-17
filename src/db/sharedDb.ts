@@ -125,16 +125,15 @@ export async function healthBreakGlassContributor(): Promise<BreakGlassContribut
     const people = createHealthPeople(sql);
     const ice = createIceStore(sql);
     return createHealthBreakGlassContributor(async (): Promise<PersonBreakGlassInput[]> => {
-      const all = await people.list();
-      const out: PersonBreakGlassInput[] = [];
-      for (const pw of all) {
-        out.push({
-          displayName: pw.person.display_name ?? pw.person.person_key,
-          ice: await ice.get(pw.person.person_key),
-          facet: pw.facet,
-        });
-      }
-      return out;
+      // Batch: people (already a 2-query join) + all ICE cards in one query, matched in
+      // memory — was an ICE query PER person on top of a facet query per person.
+      const [all, cards] = await Promise.all([people.list(), ice.list()]);
+      const iceByKey = new Map(cards.map((c) => [c.person_key, c]));
+      return all.map((pw) => ({
+        displayName: pw.person.display_name ?? pw.person.person_key,
+        ice: iceByKey.get(pw.person.person_key) ?? null,
+        facet: pw.facet,
+      }));
     });
   } catch (e) {
     console.warn("break-glass contributor unavailable:", e);

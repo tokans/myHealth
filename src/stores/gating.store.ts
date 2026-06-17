@@ -4,6 +4,7 @@
  * a locked screen). Store pattern comes from `sharedcorelib/gating`.
  */
 import { createGatingStore } from "sharedcorelib/gating";
+import { useShallow } from "zustand/react/shallow";
 import { countProfiles } from "@/db/profiles";
 import { countGoals } from "@/db/goals";
 import { countMetrics, countDistinctMetricDays } from "@/db/metrics";
@@ -45,6 +46,22 @@ export const useGatingStore = createGatingStore<GatingFlags>({
     // below for the browser-preview path, which skips computeFlags entirely).
     const override = tierOverride();
     if (override) return flagsForTier(override);
+    // Hot-path short-circuit: refresh() runs after nearly every data mutation, and the
+    // count below includes a full-table `COUNT(DISTINCT substr(taken_at,…))` scan. Earned
+    // tiers are cumulative (usage-driven) and never regress once cleared, so once every
+    // flag is set there is nothing left to compute — skip the five COUNT queries entirely.
+    const cur = useGatingStore.getState();
+    if (
+      cur.loaded &&
+      cur.hasProfile &&
+      cur.hasMetric &&
+      cur.hasGoal &&
+      cur.isTracker &&
+      cur.isCaretaker &&
+      cur.isChampion
+    ) {
+      return UNLOCKED_ALL;
+    }
     const [profiles, metrics, goals, logDays, days] = await Promise.all([
       countProfiles(),
       countMetrics(),
@@ -70,6 +87,28 @@ export const useGatingStore = createGatingStore<GatingFlags>({
     };
   },
 });
+
+/**
+ * Subscribe to ONLY the six gating flags (shallow-compared), not the whole store.
+ *
+ * `useGatingStore()` with no selector re-renders its consumer on every state change,
+ * including the new `refresh` closure and `loaded` toggle. Since `refresh()` is called
+ * after nearly every data mutation and AppShell wraps every route, that caused a
+ * whole-app re-render on each "log a vital / add a med". This narrow shallow selector
+ * re-renders a consumer only when a flag's VALUE actually changes (tier crossings),
+ * which is rare. Use this in render-path consumers (AppShell, FeatureGuard, Content).
+ */
+export const useGatingFlags = (): GatingFlags =>
+  useGatingStore(
+    useShallow((s) => ({
+      hasProfile: s.hasProfile,
+      hasMetric: s.hasMetric,
+      hasGoal: s.hasGoal,
+      isTracker: s.isTracker,
+      isCaretaker: s.isCaretaker,
+      isChampion: s.isChampion,
+    })),
+  );
 
 // In a browser preview the shared store unlocks everything before `computeFlags`
 // runs, so pin the override here too — this makes a tier override behave identically

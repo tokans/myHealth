@@ -3,7 +3,7 @@ import { useParams, Navigate, Link } from "react-router-dom";
 import { Clock, ChevronLeft, Download, Loader2, Package, Plus, Check, Trash2, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useGatingStore } from "@/stores/gating.store";
+import { useGatingFlags } from "@/stores/gating.store";
 import { tierVisibility, type EarnedTier } from "@/lib/featureGate";
 import { useContentTypes, findContentType } from "@/content/registry";
 import { useContentStore } from "@/stores/content.store";
@@ -35,7 +35,7 @@ const LEVEL_STYLE: Record<ContentLevel, string> = {
 export default function Content() {
   const { type: typeKey } = useParams();
   const types = useContentTypes();
-  const flags = useGatingStore();
+  const flags = useGatingFlags();
   const type = findContentType(types, typeKey);
 
   if (!type) return <Navigate to="/" replace />;

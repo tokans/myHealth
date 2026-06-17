@@ -2,12 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
-// FeatureGuard logic in the page reads the gating store (a sharedcorelib zustand
-// store); mock it so the test controls the tier without pulling the lib's React copy.
-vi.mock("@/stores/gating.store", () => ({ useGatingStore: vi.fn() }));
+// The page reads the gating flags via the shallow `useGatingFlags` selector (a
+// sharedcorelib zustand store); mock it so the test controls the tier without pulling
+// the lib's React copy.
+vi.mock("@/stores/gating.store", () => ({ useGatingStore: vi.fn(), useGatingFlags: vi.fn() }));
 
 import Content from "./Content";
-import { useGatingStore } from "@/stores/gating.store";
+import { useGatingFlags } from "@/stores/gating.store";
 import { useContentStore } from "@/stores/content.store";
 import { BAKED_CONTENT_TYPES } from "@/content/registry";
 import { nodeAt, nodeEntries } from "@/content/model";
@@ -21,7 +22,7 @@ const ALL_LOCKED = {
   isChampion: false,
 };
 const setFlags = (over: Partial<typeof ALL_LOCKED>) =>
-  (useGatingStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ ...ALL_LOCKED, ...over });
+  (useGatingFlags as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ ...ALL_LOCKED, ...over });
 
 const yoga = BAKED_CONTENT_TYPES.find((t) => t.key === "yoga")!;
 const morning = nodeEntries(nodeAt(yoga.tree!, ["morning"])!)[0]!;
@@ -40,7 +41,7 @@ function renderAt(path: string) {
 describe("generic Content page", () => {
   beforeEach(() => {
     useContentStore.setState({ bundlesByType: {}, revisionByType: {}, remoteTypes: [], catalogRevision: 0, lastCheckedAt: 0 });
-    (useGatingStore as unknown as ReturnType<typeof vi.fn>).mockReset();
+    (useGatingFlags as unknown as ReturnType<typeof vi.fn>).mockReset();
   });
 
   it("locks a content tab for a Starter (below its tier)", () => {

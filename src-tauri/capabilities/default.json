@@ -10,11 +10,11 @@
     "fs:default",
     {
       "identifier": "fs:allow-read-file",
-      "allow": [{ "path": "$HOME/**" }, { "path": "$DOCUMENT/**" }, { "path": "$DOWNLOAD/**" }, { "path": "$APPDATA/**" }, { "path": "$LOCALDATA/**" }]
+      "allow": [{ "path": "$DESKTOP/**" }, { "path": "$DOCUMENT/**" }, { "path": "$DOWNLOAD/**" }, { "path": "$APPDATA/**" }, { "path": "$LOCALDATA/**" }]
     },
     {
       "identifier": "fs:allow-write-file",
-      "allow": [{ "path": "$HOME/**" }, { "path": "$DOCUMENT/**" }, { "path": "$DOWNLOAD/**" }, { "path": "$APPDATA/**" }, { "path": "$LOCALDATA/**" }]
+      "allow": [{ "path": "$DESKTOP/**" }, { "path": "$DOCUMENT/**" }, { "path": "$DOWNLOAD/**" }, { "path": "$APPDATA/**" }, { "path": "$LOCALDATA/**" }]
     },
     {
       "identifier": "fs:allow-mkdir",
@@ -53,8 +53,7 @@
       "allow": [
         { "url": "https://github.com/*" },
         { "url": "https://objects.githubusercontent.com/*" },
-        { "url": "https://release-assets.githubusercontent.com/*" },
-        { "url": "http://localhost:4321/*" }
+        { "url": "https://release-assets.githubusercontent.com/*" }
       ]
     }
   ]

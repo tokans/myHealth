@@ -18,6 +18,7 @@
  * is purely that the paid affordance is gated and login-capable (login itself lives in
  * myLifeAssistant, decision 17); here it is the injected switcher slot only.
  */
+import { useMemo } from "react";
 import type { SuiteUserSwitch } from "sharedcorelib/ui";
 import { useTierStore, selectMultiUserEntitled } from "@/stores/tier.store";
 import { useProfileStore } from "@/stores/profile.store";
@@ -28,20 +29,23 @@ export function useMemberSwitch(): SuiteUserSwitch | undefined {
   const activeId = useProfileStore((s) => s.activeId);
   const setActive = useProfileStore((s) => s.setActive);
 
-  // Paid gate: free / single-primary-user installs get NO paid switch chrome.
-  if (!entitled || profiles.length <= 1) return undefined;
-
-  const current = String(activeId ?? profiles[0]?.id ?? "");
-  return {
-    current,
-    members: profiles.map((p) => ({
-      key: String(p.id),
-      label: p.name,
-      avatarText: p.name.trim().charAt(0).toUpperCase() || undefined,
-    })),
-    onSwitch: (key) => {
-      const id = Number(key);
-      if (!Number.isNaN(id)) setActive(id);
-    },
-  };
+  // Memoize so AppShell receives a stable `userSwitch` reference (and a stable
+  // members array) across renders — a fresh object every render would defeat any
+  // memoization in SuiteShell and re-map the member list on each shell re-render.
+  return useMemo<SuiteUserSwitch | undefined>(() => {
+    // Paid gate: free / single-primary-user installs get NO paid switch chrome.
+    if (!entitled || profiles.length <= 1) return undefined;
+    return {
+      current: String(activeId ?? profiles[0]?.id ?? ""),
+      members: profiles.map((p) => ({
+        key: String(p.id),
+        label: p.name,
+        avatarText: p.name.trim().charAt(0).toUpperCase() || undefined,
+      })),
+      onSwitch: (key) => {
+        const id = Number(key);
+        if (!Number.isNaN(id)) setActive(id);
+      },
+    };
+  }, [entitled, profiles, activeId, setActive]);
 }

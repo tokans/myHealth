@@ -43,14 +43,8 @@ export async function ingestBundle(
 
 /** Save a sealed bundle to a `.sync` file the user moves to the other device (Tauri). */
 export async function saveSyncFile(bytes: Uint8Array, fileName: string): Promise<void> {
-  const { save } = await import("@tauri-apps/plugin-dialog");
-  const { writeFile } = await import("@tauri-apps/plugin-fs");
-  const path = await save({
-    defaultPath: fileName,
-    filters: [{ name: "myHealth sync", extensions: ["sync"] }],
-  });
-  if (!path) throw new Error("Export cancelled — no file chosen.");
-  await writeFile(path, bytes);
+  const { saveBytesToFile } = await import("@/lib/fileSave");
+  await saveBytesToFile(bytes, fileName, [{ name: "myHealth sync", extensions: ["sync"] }]);
 }
 
 /** Pick a peer's `.sync` file and read its bytes; null if the user cancels (Tauri). */

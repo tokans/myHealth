@@ -50,8 +50,14 @@ $missing = @()
 foreach ($t in @("node", "cargo", "ffmpeg", "gifski", "tauri-driver")) {
   if (-not (Get-Command $t -ErrorAction SilentlyContinue)) { $missing += $t }
 }
-$edgeDriver = Join-Path $PSScriptRoot ".bin\msedgedriver.exe"
-if (-not (Test-Path $edgeDriver)) { $missing += "msedgedriver (demo/.bin/msedgedriver.exe)" }
+# Native WebView driver: app-local .bin (back-compat) → $env:MYDEMO_BIN_DIR →
+# the shared per-user dir (%LOCALAPPDATA%\mydemo\bin), matching @mydemo/core.
+$sharedBin = if ($env:MYDEMO_BIN_DIR) { $env:MYDEMO_BIN_DIR } else { Join-Path $env:LOCALAPPDATA "mydemo\bin" }
+$driverFound = @(
+  (Join-Path $PSScriptRoot ".bin\msedgedriver.exe"),
+  (Join-Path $sharedBin "msedgedriver.exe")
+) | Where-Object { Test-Path $_ }
+if (-not $driverFound) { $missing += "msedgedriver (put it in $sharedBin — see DEMO.md)" }
 if ($missing.Count -gt 0) {
   Write-Host "Missing prerequisites:" -ForegroundColor Red
   $missing | ForEach-Object { Write-Host "  - $_" }

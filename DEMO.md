@@ -30,14 +30,26 @@ be installed):
 | **gifski** | MP4/Y4M → GIF | `cargo install gifski` | `cargo install gifski` | `cargo install gifski` |
 | **tauri-driver** | WebDriver bridge for Tauri | `cargo install tauri-driver --locked` | same | same |
 
-Plus a **native WebView driver matched to your browser engine**, vendored under
-`demo/.bin/`:
+Plus a **native WebView driver matched to your browser engine**. `@mydemo/core`
+resolves it from a **shared per-user location** so every myLife app's demo
+points at ONE copy (the driver is version-locked to your installed Edge and
+~40 MB, so it does not belong in any repo):
+
+- **Shared dir (canonical):**
+  - Windows — `%LOCALAPPDATA%\mydemo\bin\msedgedriver.exe`
+  - macOS — `~/Library/Caches/mydemo/bin/msedgedriver`
+  - Linux — `${XDG_CACHE_HOME:-~/.cache}/mydemo/bin/msedgedriver`
+
+  Override the location with the **`MYDEMO_BIN_DIR`** env var. A binary still
+  vendored in this app's `demo/.bin/` is used first (back-compat), so existing
+  setups keep working; `npm run demo:*`'s doctor prints the exact path it wants.
 
 - **Windows** — `msedgedriver.exe` matching your installed Edge/WebView2 version.
-  Find your version (`msedge://version`), download the matching
+  Find your version (`msedge://version`) and download the matching
   `edgedriver_win64.zip` from
-  <https://developer.microsoft.com/microsoft-edge/tools/webdriver/>, and extract
-  `msedgedriver.exe` to `demo/.bin/`.
+  <https://developer.microsoft.com/microsoft-edge/tools/webdriver/> (direct:
+  `https://msedgedriver.microsoft.com/<version>/edgedriver_win64.zip`); extract
+  `msedgedriver.exe` into the shared dir above.
 - **macOS/Linux** — Tauri uses WebKitWebDriver (`WebKitWebDriver` /
   `webkit2gtk-driver`); point the driver path in `demo/config.ts` at it.
 

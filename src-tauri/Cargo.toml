@@ -1,6 +1,6 @@
 [package]
 name = "myhealth"
-version = "0.1.1"
+version = "0.1.2"
 description = "Personal & family health record — client-only, offline, cross-platform"
 authors = ["you"]
 edition = "2021"

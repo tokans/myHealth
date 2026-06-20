@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "predev": "node node_modules/sharedcorelib/vite/sync-dev-port.mjs",
+    "pretauri:dev": "node node_modules/sharedcorelib/vite/sync-dev-port.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "prebuild": "npm --prefix ../sharedCoreLib run build && npm --prefix ../sharedCoreLib/scandoc-lib run build && node scripts/build-ocr-assets.mjs copy",
@@ -13,7 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "tauri dev --config src-tauri/.dev.conf.json",
     "tauri:build": "tauri build",
     "content:build": "node scripts/build-content.mjs build-all --out dist/content-release",
     "content:dev": "node scripts/content-dev.mjs",

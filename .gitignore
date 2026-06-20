@@ -47,3 +47,6 @@ documents/
 # demo capture rig — recordings and vendored native driver
 demo/output/
 demo/.bin/
+
+# Dev-only Tauri config overlay (per-app free dev port, written by sync-dev-port.mjs)
+src-tauri/.dev.conf.json

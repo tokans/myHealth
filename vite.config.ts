@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { backupVite } from "sharedcorelib/vite";
+import { devServer } from "sharedcorelib/vite/dev-server";
 import path from "node:path";
 
 const host = process.env.TAURI_DEV_HOST;
@@ -20,11 +21,7 @@ export default defineConfig({
   },
   clearScreen: false,
   server: {
-    port: 1420,
-    strictPort: true,
-    host: host || false,
-    hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
-    watch: { ignored: ["**/src-tauri/**"] },
+    ...devServer({ host }),
   },
   envPrefix: ["VITE_", "TAURI_ENV_*"],
   build: {

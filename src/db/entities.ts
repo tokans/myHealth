@@ -12,7 +12,8 @@
  * callers that can't open the shared DB just skip it.
  *
  * INVARIANT: no health data egresses. Everything here is local SQLite; document blobs stay
- * AES-GCM under the per-device key (only opaque `blob_ref` metadata lands in `document`).
+ * AES-GCM (version-tagged `SCV1` format, see sharedcorelib/vault `SEAL_FORMAT_VERSION`)
+ * under the per-device key — only opaque `blob_ref` metadata lands in `document`, never bytes.
  */
 import {
   createEntitiesStore,

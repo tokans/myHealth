@@ -19,7 +19,12 @@ vi.mock("@/vault/stronghold", () => ({
   }),
 }));
 
-import { sealExtractedText, openExtractedText, isSealedText } from "./sealedText";
+import {
+  sealExtractedText,
+  openExtractedText,
+  isSealedText,
+  SEALED_TEXT_VERSION,
+} from "./sealedText";
 
 beforeEach(() => sealed.clear());
 
@@ -48,5 +53,21 @@ describe("sealExtractedText / openExtractedText", () => {
   it("passes legacy plaintext through unchanged on open (graceful degrade)", async () => {
     expect(isSealedText("just text")).toBe(false);
     expect(await openExtractedText("just text", "x")).toBe("just text");
+  });
+
+  it("carries a leading format/version header and reads BOTH new + legacy blobs", async () => {
+    // The version prefix is derived from SEALED_TEXT_VERSION so the format can evolve.
+    expect(SEALED_TEXT_VERSION).toBe(1);
+    const enc = await sealExtractedText("HbA1c 5.4", "blob-v");
+    expect(enc!.startsWith(`scv${SEALED_TEXT_VERSION}:`)).toBe(true);
+
+    // New (version-tagged) blob round-trips...
+    expect(await openExtractedText(enc, "blob-v")).toBe("HbA1c 5.4");
+    // ...and a legacy (no-version-byte) value is still readable as plaintext — backward
+    // compatible, so no existing extracted_text becomes unreadable after the upgrade.
+    expect(isSealedText("legacy plaintext extracted text")).toBe(false);
+    expect(await openExtractedText("legacy plaintext extracted text", "blob-v")).toBe(
+      "legacy plaintext extracted text",
+    );
   });
 });

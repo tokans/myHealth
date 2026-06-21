@@ -98,8 +98,10 @@ export async function healthPeople(): Promise<HealthPeople | null> {
 
 /**
  * Handle on the shared `document` + `event` spine for medical docs and visits. Document
- * BYTES stay AES-GCM under the per-device key in the vault; only opaque `blob_ref`
- * metadata is mirrored here. Returns null outside Tauri. No health data egresses.
+ * BYTES stay AES-GCM (version-tagged `SCV1` format, see sharedcorelib/vault
+ * `SEAL_FORMAT_VERSION`; legacy blobs read back-compat) under the per-device key in the
+ * vault; only opaque `blob_ref` metadata is mirrored here. Returns null outside Tauri.
+ * No health data egresses.
  */
 export async function healthTimeline(): Promise<HealthTimeline | null> {
   if (!isTauri()) return null;

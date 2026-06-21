@@ -6,9 +6,10 @@
  * co-owned `createEntitiesStore`.
  *
  * CRYPTO INVARIANT (hard): the document BYTES never touch this layer. They stay AES-GCM
- * under the per-device key in the encrypted vault; only the opaque `blob_ref` (a vault id /
- * path, never plaintext) and recipient-safe metadata (title/mime/person) land in
- * `common_document`. Nothing here egresses — all local SQLite.
+ * (version-tagged `SCV1` format, see sharedcorelib/vault `SEAL_FORMAT_VERSION`; legacy
+ * blobs stay readable) under the per-device key in the encrypted vault; only the opaque
+ * `blob_ref` (a vault id / path, never plaintext) and recipient-safe metadata
+ * (title/mime/person) land in `common_document`. Nothing here egresses — all local SQLite.
  *
  * Pure DI over an injected SqlDb so it is unit-testable; live wiring is in sharedDb.ts.
  */

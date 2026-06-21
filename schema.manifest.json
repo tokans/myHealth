@@ -1,0 +1,549 @@
+[
+  {
+    "namespace": "common",
+    "name": "IceCard",
+    "plural": "IceCards",
+    "dbAlias": "common_ice_card",
+    "schemaType": "Table",
+    "confidentiality": "Confidential",
+    "owner": "common",
+    "shared": true,
+    "purpose": "One shared in-case-of-emergency card per person, reused across suite apps.",
+    "fields": [
+      {
+        "name": "person_key",
+        "dataType": "id",
+        "keyField": true,
+        "editability": "Immutable",
+        "description": "stable per-person key ('self' or a name slug)"
+      },
+      {
+        "name": "display_name",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Name shown on the emergency card.",
+        "description": "person's display name"
+      },
+      {
+        "name": "blood_group",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Critical for emergency transfusion decisions.",
+        "description": "ABO/Rh blood group"
+      },
+      {
+        "name": "contact_name",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Who to reach in an emergency.",
+        "description": "emergency contact name"
+      },
+      {
+        "name": "contact_phone",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Dialable emergency contact number.",
+        "description": "emergency contact phone"
+      },
+      {
+        "name": "contact_email",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Emergency contact email.",
+        "description": "emergency contact email"
+      },
+      {
+        "name": "allergies",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Allergies first responders must know.",
+        "description": "free-text allergy list"
+      },
+      {
+        "name": "conditions",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Conditions first responders must know.",
+        "description": "free-text condition list"
+      },
+      {
+        "name": "medications",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Current medications first responders must know.",
+        "description": "free-text medication list"
+      },
+      {
+        "name": "organ_donor",
+        "dataType": "boolean",
+        "description": "registered organ donor (1/0)"
+      },
+      {
+        "name": "advance_directive",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Advance-directive note for clinicians.",
+        "description": "advance-directive note"
+      },
+      {
+        "name": "notes",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Any other emergency note.",
+        "description": "free-text note"
+      },
+      {
+        "name": "updated_at",
+        "dataType": "date",
+        "description": "ISO timestamp of the last edit"
+      },
+      {
+        "name": "source_app",
+        "dataType": "string",
+        "description": "app id that last wrote this card"
+      }
+    ]
+  },
+  {
+    "namespace": "common",
+    "name": "Person",
+    "plural": "People",
+    "dbAlias": "common_person",
+    "schemaType": "Table",
+    "confidentiality": "Confidential",
+    "owner": "common",
+    "shared": true,
+    "purpose": "One shared identity per person across the suite; apps attach domain facets by person_key.",
+    "fields": [
+      {
+        "name": "person_key",
+        "dataType": "id",
+        "keyField": true,
+        "editability": "Immutable",
+        "description": "stable per-person key ('self' or a name slug)"
+      },
+      {
+        "name": "display_name",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Name shown for this person across apps.",
+        "description": "display name"
+      },
+      {
+        "name": "relationship_to_self",
+        "dataType": "string",
+        "description": "objective relationship to the primary user (self/spouse/child/parent/friend/...)"
+      },
+      {
+        "name": "contact_phone",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Reach this person.",
+        "description": "primary phone"
+      },
+      {
+        "name": "contact_email",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Reach this person.",
+        "description": "primary email"
+      },
+      {
+        "name": "dob",
+        "dataType": "date",
+        "personalData": true,
+        "purpose": "Disambiguate identity / age-aware features.",
+        "description": "date of birth (optional)"
+      },
+      {
+        "name": "photo",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Recognize this person in the UI.",
+        "description": "encrypted-blob ref to an avatar (optional)"
+      },
+      {
+        "name": "updated_at",
+        "dataType": "date",
+        "description": "ISO timestamp of the last edit"
+      },
+      {
+        "name": "source_app",
+        "dataType": "string",
+        "description": "app id that last wrote this row"
+      },
+      {
+        "name": "member_class",
+        "dataType": "enum",
+        "constraints": {
+          "enumValues": [
+            "owner",
+            "adult",
+            "child_user",
+            "managed_dependent"
+          ]
+        },
+        "description": "multi-user member class (owner/adult/child_user/managed_dependent); null = single primary user (owner)"
+      }
+    ]
+  },
+  {
+    "namespace": "common",
+    "name": "PersonRelationship",
+    "plural": "PersonRelationships",
+    "dbAlias": "common_person_relationship",
+    "schemaType": "Table",
+    "confidentiality": "Confidential",
+    "owner": "common",
+    "shared": true,
+    "purpose": "Objective relationship edges between people; substrate for multi-user perspective (derive relationship-to-active-user).",
+    "fields": [
+      {
+        "name": "id",
+        "dataType": "id",
+        "keyField": true,
+        "editability": "Immutable",
+        "description": "edge id"
+      },
+      {
+        "name": "from_person",
+        "dataType": "id",
+        "required": true,
+        "index": "NonUnique",
+        "description": "person_key of the source"
+      },
+      {
+        "name": "to_person",
+        "dataType": "id",
+        "required": true,
+        "index": "NonUnique",
+        "description": "person_key of the target"
+      },
+      {
+        "name": "type",
+        "dataType": "string",
+        "required": true,
+        "description": "edge type (parent_of/spouse_of/sibling_of/...)"
+      },
+      {
+        "name": "updated_at",
+        "dataType": "date",
+        "description": "ISO timestamp of the last edit"
+      },
+      {
+        "name": "source_app",
+        "dataType": "string",
+        "description": "app id that last wrote this row"
+      }
+    ]
+  },
+  {
+    "namespace": "common",
+    "name": "Event",
+    "plural": "Events",
+    "dbAlias": "common_event",
+    "schemaType": "Event",
+    "confidentiality": "Confidential",
+    "owner": "common",
+    "shared": true,
+    "purpose": "Shared timeline item that any app can place and read (birthdays, purchases, appointments, ...).",
+    "fields": [
+      {
+        "name": "id",
+        "dataType": "id",
+        "keyField": true,
+        "editability": "Immutable",
+        "description": "event id"
+      },
+      {
+        "name": "date",
+        "dataType": "date",
+        "required": true,
+        "index": "NonUnique",
+        "description": "when the event occurs (ISO)"
+      },
+      {
+        "name": "title",
+        "dataType": "string",
+        "required": true,
+        "personalData": true,
+        "purpose": "Human label for the timeline item.",
+        "description": "event title"
+      },
+      {
+        "name": "person_key",
+        "dataType": "id",
+        "index": "NonUnique",
+        "description": "linked person (optional)"
+      },
+      {
+        "name": "asset_id",
+        "dataType": "id",
+        "index": "NonUnique",
+        "description": "linked asset (optional)"
+      },
+      {
+        "name": "document_id",
+        "dataType": "id",
+        "index": "NonUnique",
+        "description": "linked document (optional)"
+      },
+      {
+        "name": "notes",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Free-text detail for the event.",
+        "description": "notes (optional)"
+      },
+      {
+        "name": "updated_at",
+        "dataType": "date",
+        "description": "ISO timestamp of the last edit"
+      },
+      {
+        "name": "source_app",
+        "dataType": "string",
+        "description": "app id that last wrote this row"
+      }
+    ]
+  },
+  {
+    "namespace": "common",
+    "name": "Document",
+    "plural": "Documents",
+    "dbAlias": "common_document",
+    "schemaType": "Table",
+    "confidentiality": "Restricted",
+    "owner": "common",
+    "shared": true,
+    "purpose": "Metadata for an encrypted document blob, shared across apps and linkable to people/assets.",
+    "fields": [
+      {
+        "name": "id",
+        "dataType": "id",
+        "keyField": true,
+        "editability": "Immutable",
+        "description": "document id"
+      },
+      {
+        "name": "title",
+        "dataType": "string",
+        "required": true,
+        "personalData": true,
+        "purpose": "Human label for the document.",
+        "description": "document title"
+      },
+      {
+        "name": "blob_ref",
+        "dataType": "string",
+        "description": "opaque reference to the encrypted blob (path/id) — never the plaintext"
+      },
+      {
+        "name": "mime",
+        "dataType": "string",
+        "description": "MIME type"
+      },
+      {
+        "name": "person_key",
+        "dataType": "id",
+        "index": "NonUnique",
+        "description": "linked person (optional)"
+      },
+      {
+        "name": "asset_id",
+        "dataType": "id",
+        "index": "NonUnique",
+        "description": "linked asset (optional)"
+      },
+      {
+        "name": "updated_at",
+        "dataType": "date",
+        "description": "ISO timestamp of the last edit"
+      },
+      {
+        "name": "source_app",
+        "dataType": "string",
+        "description": "app id that last wrote this row"
+      }
+    ]
+  },
+  {
+    "namespace": "common",
+    "name": "Asset",
+    "plural": "Assets",
+    "dbAlias": "common_asset",
+    "schemaType": "Table",
+    "confidentiality": "Restricted",
+    "owner": "common",
+    "shared": true,
+    "purpose": "A shared record of an owned thing of value (account/vehicle/property/collection), linkable to a person and proof documents.",
+    "fields": [
+      {
+        "name": "id",
+        "dataType": "id",
+        "keyField": true,
+        "editability": "Immutable",
+        "description": "asset id"
+      },
+      {
+        "name": "type",
+        "dataType": "enum",
+        "required": true,
+        "constraints": {
+          "enumValues": [
+            "account",
+            "vehicle",
+            "property",
+            "collection",
+            "other"
+          ]
+        },
+        "description": "asset kind"
+      },
+      {
+        "name": "label",
+        "dataType": "string",
+        "required": true,
+        "personalData": true,
+        "purpose": "Human label for the asset.",
+        "description": "display label"
+      },
+      {
+        "name": "value",
+        "dataType": "number",
+        "personalData": true,
+        "purpose": "Net-worth / estate aggregation.",
+        "description": "current value (optional)",
+        "constraints": {
+          "unit": "INR"
+        }
+      },
+      {
+        "name": "owner",
+        "dataType": "id",
+        "index": "NonUnique",
+        "description": "person_key of the owner (optional)"
+      },
+      {
+        "name": "proof_document_id",
+        "dataType": "id",
+        "description": "linked proof document (optional)"
+      },
+      {
+        "name": "updated_at",
+        "dataType": "date",
+        "description": "ISO timestamp of the last edit"
+      },
+      {
+        "name": "source_app",
+        "dataType": "string",
+        "description": "app id that last wrote this row"
+      }
+    ]
+  },
+  {
+    "namespace": "myhealth",
+    "name": "HealthFacet",
+    "plural": "HealthFacets",
+    "dbAlias": "myhealth_health_facet",
+    "schemaType": "Table",
+    "confidentiality": "Restricted",
+    "owner": "myhealth",
+    "purpose": "Per-person medical facet on the shared person spine; the medical fields myHealth owns.",
+    "fields": [
+      {
+        "name": "person_key",
+        "dataType": "id",
+        "keyField": true,
+        "editability": "Immutable",
+        "description": "shared person key (matches the common person row + ICE card)"
+      },
+      {
+        "name": "sex",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Sex-aware vitals ranges and screening schedules.",
+        "description": "female|male|other|unspecified"
+      },
+      {
+        "name": "blood_group",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Emergency medical info.",
+        "description": "blood group (e.g. O+)"
+      },
+      {
+        "name": "height_cm",
+        "dataType": "number",
+        "personalData": true,
+        "purpose": "BMI / vitals derivation.",
+        "description": "height in centimetres",
+        "constraints": {
+          "unit": "cm"
+        }
+      },
+      {
+        "name": "conditions",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Record chronic conditions for care + emergency disclosure.",
+        "description": "free-text / list of medical conditions"
+      },
+      {
+        "name": "medications",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Record current medications for care + emergency disclosure.",
+        "description": "free-text / list of current medications"
+      },
+      {
+        "name": "allergies",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Critical emergency medical info.",
+        "description": "free-text / list of allergies"
+      },
+      {
+        "name": "advance_directive",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Honour end-of-life wishes in an emergency / break-glass.",
+        "description": "advance directive (e.g. DNR / living will summary)"
+      },
+      {
+        "name": "organ_donor",
+        "dataType": "boolean",
+        "personalData": true,
+        "purpose": "Surface organ-donor status in an emergency.",
+        "description": "1 = registered organ donor"
+      },
+      {
+        "name": "is_pet",
+        "dataType": "boolean",
+        "description": "1 when this person is a managed-dependent pet"
+      },
+      {
+        "name": "species",
+        "dataType": "string",
+        "description": "pet species/breed (only meaningful when is_pet = 1)"
+      },
+      {
+        "name": "notes",
+        "dataType": "string",
+        "personalData": true,
+        "purpose": "Free-text medical notes.",
+        "description": "notes"
+      },
+      {
+        "name": "updated_at",
+        "dataType": "date",
+        "description": "ISO timestamp of the last edit"
+      },
+      {
+        "name": "source_app",
+        "dataType": "string",
+        "description": "app id that last wrote this row"
+      }
+    ]
+  }
+]

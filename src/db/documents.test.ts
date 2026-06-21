@@ -4,6 +4,8 @@ vi.mock("./client", () => ({ execute: vi.fn(), query: vi.fn() }));
 // Keep the wrapper pure: stub the vault-backed sealing so tests don't need an unlocked
 // vault. seal returns a marker; open echoes the stored value back (so decrypt is visible).
 vi.mock("./sealedText", () => ({
+  SEALED_TEXT_VERSION: 1,
+  isSealedText: (v: string | null | undefined) => typeof v === "string" && v.startsWith("scv1:"),
   sealExtractedText: vi.fn(async (plain: string | null) => (plain == null || plain === "" ? null : `scv1:SEALED(${plain})`)),
   openExtractedText: vi.fn(async (stored: string | null) =>
     stored && stored.startsWith("scv1:SEALED(") ? stored.slice("scv1:SEALED(".length, -1) : stored,

@@ -7,10 +7,23 @@
  * that protects the blob bytes (`vault.sealBytes`/`openBytes`); callers see/provide
  * plaintext and this layer seals on write + opens on read. Sealing/opening needs the vault
  * unlocked — the Documents page is already vault-gated.
+ *
+ * FORMAT VERSIONING (kdf-floor): every sealed blob carries a leading format/version header —
+ * the document bytes get the binary `SCV1` magic from `sharedcorelib/vault` `sealWithKey`
+ * (= `SEAL_FORMAT_VERSION`), and the `extracted_text_enc` cell carries the matching `scv1:`
+ * text prefix from `./sealedText`. Reads are BACKWARD-COMPATIBLE: an unmarked legacy blob
+ * (pre-version-byte) still opens via the legacy `iv‖ciphertext` / plaintext fallback, so no
+ * existing data becomes unreadable.
  */
 import { execute, query } from "./client";
 import { T } from "./tables";
-import { sealExtractedText, openExtractedText } from "./sealedText";
+import { SEAL_FORMAT_VERSION } from "sharedcorelib/vault";
+import { sealExtractedText, openExtractedText, SEALED_TEXT_VERSION } from "./sealedText";
+
+// The on-disk seal format both paths emit (binary `SCV1` magic + the `scv1:` cell prefix).
+// Asserting they agree keeps the document-bytes and extracted-text versioning in lockstep.
+export const DOCUMENT_SEAL_VERSION = SEAL_FORMAT_VERSION;
+void SEALED_TEXT_VERSION;
 
 export type DocType =
   | "prescription"

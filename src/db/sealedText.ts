@@ -19,7 +19,15 @@
  */
 import { sealBytes, openBytes } from "@/vault/stronghold";
 
-const PREFIX = "scv1:";
+/**
+ * The leading format/version of a sealed `extracted_text_enc` cell. The cell is
+ * `"scv" + SEALED_TEXT_VERSION + ":" + base64(GCM-sealed-bytes)`; the version lets the
+ * wire format evolve. Reads are BACKWARD-COMPATIBLE — a value without this prefix is
+ * treated as legacy plaintext and returned as-is (see openExtractedText), so existing rows
+ * never become unreadable.
+ */
+export const SEALED_TEXT_VERSION = 1;
+const PREFIX = `scv${SEALED_TEXT_VERSION}:`;
 
 function toB64(bytes: Uint8Array): string {
   let s = "";

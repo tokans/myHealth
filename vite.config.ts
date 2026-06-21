@@ -18,6 +18,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       ...backup.alias,
     },
+    // `sharedcorelib` is consumed via a `file:../` symlink and declares React (and
+    // the other context-singleton libs) as peerDependencies — but it ALSO carries
+    // its own copies in devDependencies for its own build/test. When Rolldown bundles
+    // myHealth and follows imports into the symlinked sharedCoreLib source, a bare
+    // `import ... from "react"` there would otherwise resolve to sharedCoreLib's OWN
+    // node_modules copy, producing a SECOND React instance in the bundle. Two React
+    // instances share no internals, so the cross-module React binding resolves to
+    // null at render time → `Cannot read properties of null (reading 'useCallback')`
+    // → the whole tree fails to mount → white screen (production-only; the dev server
+    // pre-bundles/dedupes so it never surfaced in `npm run dev`). Force every shared
+    // singleton to myHealth's single copy. Order with React first.
+    dedupe: ["react", "react-dom", "scheduler", "react-router", "react-router-dom"],
   },
   clearScreen: false,
   server: {

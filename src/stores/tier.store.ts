@@ -17,6 +17,7 @@ import {
   nextEarnedTiers,
   type Tier,
   type TierContext,
+  type TierKey,
 } from "@/lib/gamification";
 
 interface TierState {
@@ -29,8 +30,9 @@ export const useTierStore = create<TierState>((set) => ({
   ctx: EMPTY_TIER_CONTEXT,
   loaded: false,
   refresh: async () => {
-    // Dev/QA: a tier override wins over real signals, in every environment.
-    const override = tierOverride();
+    // Dev/QA: a tier override wins over real signals, in every environment. The shared reader
+    // already validates against the app's tier keys, so the result is a TierKey when present.
+    const override = tierOverride.get() as TierKey | null;
     if (override) {
       set({ ctx: ctxForTier(override), loaded: true });
       return;

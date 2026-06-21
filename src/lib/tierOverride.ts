@@ -14,6 +14,7 @@
  * Honored in `npm run dev` / `npm run tauri:dev` ALWAYS; in a PRODUCTION build only
  * when VITE_ALLOW_TIER_OVERRIDE="1", so it can never leak into shipped installers.
  */
+import { createTierOverride } from "sharedcorelib/ui";
 import {
   EMPTY_TIER_CONTEXT,
   reachedTier,
@@ -23,53 +24,23 @@ import {
 import type { GatingFlags } from "@/lib/featureGate";
 
 const VALID: TierKey[] = ["starter", "tracker", "caretaker", "champion", "supporter", "pro"];
-const STORAGE_KEY = "myhealth.tierOverride";
 
-/** Whether overrides are honored in the current build. */
-function allowed(): boolean {
-  return import.meta.env.DEV || import.meta.env.VITE_ALLOW_TIER_OVERRIDE === "1";
-}
-
-/** Read `tier` from the query string, both before the hash (?tier=…) and after (#/x?tier=…). */
-function fromUrl(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const search = new URLSearchParams(window.location.search);
-    const hashQ = window.location.hash.includes("?")
-      ? new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf("?") + 1))
-      : null;
-    return search.get("tier") ?? hashQ?.get("tier") ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/** The active override tier, or null when none is set / not allowed. */
-export function tierOverride(): TierKey | null {
-  if (!allowed()) return null;
-
-  let raw = fromUrl();
-  // A URL param writes through to localStorage so it persists across reloads + routing.
-  if (raw != null && typeof localStorage !== "undefined") {
-    try {
-      if (raw === "" || raw === "clear" || raw === "off") localStorage.removeItem(STORAGE_KEY);
-      else localStorage.setItem(STORAGE_KEY, raw);
-    } catch {
-      /* ignore */
-    }
-  }
-  if (raw == null && typeof localStorage !== "undefined") {
-    try {
-      raw = localStorage.getItem(STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
-  }
-  if (raw == null) raw = import.meta.env.VITE_TIER ?? null;
-
-  const key = raw?.trim().toLowerCase();
-  return key && (VALID as string[]).includes(key) ? (key as TierKey) : null;
-}
+/**
+ * The shared dev/test tier override (source reader + persistence + `allowed()`). The env flags
+ * are injected here — the shared lib never reads `import.meta.env` itself. Source precedence is
+ * URL `?tier=` → localStorage → build-time start tier (`VITE_TIER`). `tierOverride.get()` returns
+ * the active override key (or null); `tierOverride.allowed()` reports whether overrides are
+ * honored (dev build, or the `VITE_ALLOW_TIER_OVERRIDE="1"` prod escape hatch).
+ */
+export const tierOverride = createTierOverride({
+  storageKey: "myhealth.tierOverride",
+  validKeys: VALID,
+  env: {
+    dev: import.meta.env.DEV,
+    allowInProd: import.meta.env.VITE_ALLOW_TIER_OVERRIDE === "1",
+    startTier: import.meta.env.VITE_TIER,
+  },
+});
 
 /**
  * A synthetic TierContext that clears the target tier's bar (and every earned bar

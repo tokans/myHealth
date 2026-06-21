@@ -1,6 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { ctxForTier, flagsForTier, tierOverride } from "./tierOverride";
+import { describe, it, expect } from "vitest";
+import { ctxForTier, flagsForTier } from "./tierOverride";
 import { resolveTier } from "./gamification";
+
+// The override SOURCE reader (`?tier=` → localStorage → start tier + `allowed()`) now lives in
+// sharedCoreLib (`sharedcorelib/ui` createTierOverride, pure resolver in `sharedcorelib/tiers`)
+// and is covered by that package's tests. Here we test only the app-specific tier→context and
+// tier→flags mappings that stayed in myHealth.
 
 describe("ctxForTier", () => {
   it("synthesizes a context that resolves to the requested tier", () => {
@@ -45,49 +50,5 @@ describe("flagsForTier", () => {
       isCaretaker: true,
       isChampion: true,
     });
-  });
-});
-
-describe("tierOverride", () => {
-  beforeEach(() => {
-    localStorage.clear();
-    window.location.hash = "";
-    // jsdom location.search is read-only; replace it for the test.
-    Object.defineProperty(window, "location", {
-      value: { ...window.location, search: "", hash: "" },
-      writable: true,
-    });
-  });
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    localStorage.clear();
-  });
-
-  it("returns null when nothing is set", () => {
-    expect(tierOverride()).toBeNull();
-  });
-
-  it("reads a valid tier from the query string and persists it", () => {
-    window.location.search = "?tier=caretaker";
-    expect(tierOverride()).toBe("caretaker");
-    // Persisted, so it survives a reload (no query).
-    window.location.search = "";
-    expect(tierOverride()).toBe("caretaker");
-  });
-
-  it("?tier=clear removes a persisted override", () => {
-    localStorage.setItem("myhealth.tierOverride", "champion");
-    window.location.search = "?tier=clear";
-    expect(tierOverride()).toBeNull();
-  });
-
-  it("ignores unknown values", () => {
-    window.location.search = "?tier=wizard";
-    expect(tierOverride()).toBeNull();
-  });
-
-  it("falls back to VITE_TIER", () => {
-    vi.stubEnv("VITE_TIER", "tracker");
-    expect(tierOverride()).toBe("tracker");
   });
 });

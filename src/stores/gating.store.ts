@@ -9,7 +9,7 @@ import { countProfiles } from "@/db/profiles";
 import { countGoals } from "@/db/goals";
 import { countMetrics, countDistinctMetricDays } from "@/db/metrics";
 import { countDistinctLaunchDays } from "@/db/usage";
-import { reachedTier, EMPTY_TIER_CONTEXT } from "@/lib/gamification";
+import { reachedTier, EMPTY_TIER_CONTEXT, type TierKey } from "@/lib/gamification";
 import { tierOverride, flagsForTier } from "@/lib/tierOverride";
 import { grantStatus } from "@/grant/receiver";
 import type { GatingFlags } from "@/lib/featureGate";
@@ -44,7 +44,7 @@ export const useGatingStore = createGatingStore<GatingFlags>({
   computeFlags: async () => {
     // Dev/QA: a tier override pins the gates (also handled in the refresh wrapper
     // below for the browser-preview path, which skips computeFlags entirely).
-    const override = tierOverride();
+    const override = tierOverride.get() as TierKey | null;
     if (override) return flagsForTier(override);
     // Hot-path short-circuit: refresh() runs after nearly every data mutation, and the
     // count below includes a full-table `COUNT(DISTINCT substr(taken_at,…))` scan. Earned
@@ -116,7 +116,7 @@ export const useGatingFlags = (): GatingFlags =>
 const _baseRefresh = useGatingStore.getState().refresh;
 useGatingStore.setState({
   refresh: async () => {
-    const override = tierOverride();
+    const override = tierOverride.get() as TierKey | null;
     if (override) {
       useGatingStore.setState({ ...flagsForTier(override), loaded: true });
       return;

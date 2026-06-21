@@ -1,16 +1,23 @@
 import { useMemo, useState } from "react";
 import { Heart, HeartPulse, LayoutGrid } from "lucide-react";
-import { SuiteShell, type SuiteNavItem, type SuiteAction } from "sharedcorelib/ui";
+import {
+  SuiteShell,
+  TestTierChooser,
+  type SuiteNavItem,
+  type SuiteAction,
+  type TestTierOption,
+} from "sharedcorelib/ui";
 import { cn } from "@/lib/utils";
 import { buildNav, type NavItem } from "@/lib/nav";
 import { GATES, gateVisibility, tierVisibility, type EarnedTier, type GatingFlags } from "@/lib/featureGate";
 import { useContentTypes } from "@/content/registry";
 import { openExternal } from "@/lib/openExternal";
 import { openDonatePage } from "@/lib/donate";
-import { reachedTier } from "@/lib/gamification";
+import { reachedTier, TIERS } from "@/lib/gamification";
+import { tierOverride } from "@/lib/tierOverride";
 import { ReportIssueDialog } from "@/components/feedback/ReportIssueDialog";
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
-import { useGatingFlags } from "@/stores/gating.store";
+import { useGatingFlags, useGatingStore } from "@/stores/gating.store";
 import { useTierStore, selectTier } from "@/stores/tier.store";
 import { useMemberSwitch } from "@/lib/useMemberSwitch";
 
@@ -19,6 +26,9 @@ const TIER_LABEL: Record<EarnedTier, string> = {
   caretaker: "Caretaker",
   champion: "Champion",
 };
+
+// Dev/test ladder for the floating tier chooser (low → high). Renders nothing outside dev.
+const TIER_CHOOSER_OPTIONS: TestTierOption[] = TIERS.map((t) => ({ key: t.key, label: t.label }));
 
 /** Visibility decision for a nav item given the live gating flags (one tier ahead nudges). */
 function navState(item: NavItem, flags: GatingFlags) {
@@ -64,6 +74,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // family-profile switcher below (the `profile` slot / ProfileMenu — decision 18), which
   // is unaffected and keeps working exactly as today.
   const userSwitch = useMemberSwitch();
+
+  // Dev-only tier chooser: pick any tier, then re-derive the live tier + gating pictures.
+  // `tierOverride.set` (done inside the chooser) persists the choice before these refresh.
+  const applyTierOverride = async () => {
+    await Promise.all([useTierStore.getState().refresh(), useGatingStore.getState().refresh()]);
+  };
 
   // Static nav with the dynamic content tabs (Yoga, Exercises, …) spliced in. Rebuilt only
   // when the content types change (not on every render).
@@ -137,6 +153,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </SuiteShell>
       <ReportIssueDialog open={reportOpen} onOpenChange={setReportOpen} />
+      <TestTierChooser
+        override={tierOverride}
+        options={TIER_CHOOSER_OPTIONS}
+        current={tierOverride.get()}
+        onApply={applyTierOverride}
+      />
     </>
   );
 }

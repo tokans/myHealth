@@ -22,6 +22,9 @@ vi.mock("sharedcorelib/reminders", () => ({
     fx.titles = open.map((r: any) => r.title);
     return open.length;
   },
+  // `@/lib/utils` now re-exports `localToday` from this module (repointed onto core),
+  // so the mock must provide it too — the sweep calls `localToday()`.
+  localToday: () => "2026-01-01",
 }));
 
 vi.mock("@/db/profiles", () => ({ listProfiles: async () => fx.profiles }));

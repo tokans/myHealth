@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { suiteCatalog } from "./catalog";
-import { listPublishedApps } from "./registry";
 import { SEED_PUBLISHED_APPS, SUITE_APP_ID } from "./config";
 import { applyGrant, clearGrant } from "@/grant/receiver";
 
@@ -13,8 +12,12 @@ const byId = async (id: string) => (await suiteCatalog.list()).find((a) => a.app
 
 describe("published-apps registry", () => {
   it("falls back to the baked seed when nothing is cached", async () => {
-    const apps = await listPublishedApps();
-    expect(apps).toEqual(SEED_PUBLISHED_APPS);
+    // The core local-state adapter unions the OTA cache (empty here) over the baked seed,
+    // so every seeded app — including the current one — is listed.
+    const apps = await suiteCatalog.list();
+    for (const seeded of SEED_PUBLISHED_APPS) {
+      expect(apps.some((a) => a.appId === seeded.appId)).toBe(true);
+    }
     expect(apps.some((a) => a.appId === SUITE_APP_ID)).toBe(true);
   });
 });

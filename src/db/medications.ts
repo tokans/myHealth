@@ -40,8 +40,8 @@ export async function createMedication(m: {
   start_date?: string;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO ${T.medications} (profile_id, drug, strength, form, schedule, prescriber, notes, start_date)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+    `INSERT INTO ${T.medications} (profile_id, drug, strength, form, schedule, prescriber, notes, start_date, active, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9)`,
     [
       m.profile_id,
       m.drug,
@@ -51,6 +51,7 @@ export async function createMedication(m: {
       m.prescriber ?? null,
       m.notes ?? null,
       m.start_date ?? null,
+      new Date().toISOString(),
     ],
   );
   return res.lastInsertId ?? 0;
@@ -74,9 +75,9 @@ export interface MedicationFields {
 /** Insert a fully-specified medication (Excel import, add-new path). */
 export async function createMedicationFull(m: MedicationFields): Promise<number> {
   const res = await execute(
-    `INSERT INTO ${T.medications} (profile_id, drug, strength, form, schedule, times, prescriber, start_date, end_date, notes, active)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`,
-    [m.profile_id, m.drug, m.strength, m.form, m.schedule, m.times, m.prescriber, m.start_date, m.end_date, m.notes, m.active],
+    `INSERT INTO ${T.medications} (profile_id, drug, strength, form, schedule, times, prescriber, start_date, end_date, notes, active, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
+    [m.profile_id, m.drug, m.strength, m.form, m.schedule, m.times, m.prescriber, m.start_date, m.end_date, m.notes, m.active, new Date().toISOString()],
   );
   return res.lastInsertId ?? 0;
 }

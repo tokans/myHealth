@@ -90,14 +90,15 @@ describe("createTask", () => {
     expect(id).toBe(9);
     const [sql, params] = mockExecute.mock.calls[0];
     expect(sql).toContain("INSERT INTO myhealth_daily_tasks");
-    expect(params).toEqual([2, "Walk", "weekdays", "08:00"]);
+    expect(sql).toContain(", active, created_at)"); // active is NOT NULL — supplied as a literal 1
+    expect(params).toEqual([2, "Walk", "weekdays", "08:00", expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)]);
   });
 
   it("defaults recurrence to 'daily' and reminder_time to null", async () => {
     mockExecute.mockResolvedValue({ lastInsertId: 1, rowsAffected: 1 } as any);
     await createTask({ profile_id: 2, title: "Walk" });
     const [, params] = mockExecute.mock.calls[0];
-    expect(params).toEqual([2, "Walk", "daily", null]);
+    expect(params).toEqual([2, "Walk", "daily", null, expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)]);
   });
 
   it("returns 0 when lastInsertId is undefined", async () => {

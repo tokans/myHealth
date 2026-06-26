@@ -54,7 +54,11 @@ describe("createMedication", () => {
     expect(id).toBe(11);
     const [sql, params] = mockExecute.mock.calls[0];
     expect(sql).toContain("INSERT INTO myhealth_medications");
-    expect(params).toEqual([2, "Aspirin", null, null, null, null, null, null]);
+    expect(sql).toContain(", active, created_at)"); // active is NOT NULL — supplied as a literal 1
+    expect(params).toEqual([
+      2, "Aspirin", null, null, null, null, null, null,
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    ]);
   });
 
   it("passes through provided fields", async () => {
@@ -70,7 +74,10 @@ describe("createMedication", () => {
       start_date: "2026-01-01",
     });
     const [, params] = mockExecute.mock.calls[0];
-    expect(params).toEqual([2, "Metformin", "500mg", "tablet", "BID", "Dr. A", "with food", "2026-01-01"]);
+    expect(params).toEqual([
+      2, "Metformin", "500mg", "tablet", "BID", "Dr. A", "with food", "2026-01-01",
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    ]);
   });
 
   it("returns 0 when lastInsertId missing", async () => {

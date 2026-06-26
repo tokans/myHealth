@@ -6,6 +6,7 @@ import { createIceStore, type IceStore } from "sharedcorelib/ice";
 import { MYHEALTH_SCHEMAS } from "./schemas";
 import { APP_TABLE_SCHEMAS } from "./appTables";
 import { MYHEALTH_AUX_MIGRATIONS } from "./auxMigrations";
+import { fixIntegerKeyColumns, dedupeProfileLinks } from "./fixIntegerKeyColumns";
 import { APP_ID } from "./healthFacet";
 import { createHealthPeople, type HealthPeople } from "./entities";
 import { createHealthTimeline, type HealthTimeline } from "./sharedTimeline";
@@ -58,27 +59,52 @@ export async function openSharedDbAdapter(): Promise<SqlDb> {
   return adapter(await openSharedDb());
 }
 
+let initPromise: Promise<void> | null = null;
+
 /**
  * Register myHealth's schemas into the shared suite DB and ensure the common ICE table
  * exists. Best-effort + idempotent — call once on launch (inside Tauri). A schema
  * conflict THROWS (caught here) so the shared store is never corrupted.
+ *
+ * Re-entrant-safe: React StrictMode double-invokes effects in dev (mount→cleanup→
+ * re-mount), so App.tsx's boot effect calls this twice on every dev load. That was always
+ * harmless against the old purely-additive CREATE-IF-NOT-EXISTS steps, but
+ * `fixIntegerKeyColumns` below does a destructive rename+recreate — two concurrent passes
+ * racing each other corrupted a live dev DB (dropped indexes/triggers a second time after
+ * aux-SQL had already healed them once). A module-level in-flight promise collapses
+ * concurrent callers onto the SAME run instead of starting a second one.
  */
-export async function initSharedDb(): Promise<void> {
-  if (!isTauri()) return;
-  try {
-    const sql = adapter(await openSharedDb());
-    // Common spine + ICE + facet descriptors, then myHealth's own app tables (the
-    // descriptor-ized legacy tables), then the aux-SQL steps (indexes/triggers/CHECK
-    // guards) — order matters: aux SQL references tables registerSchemas created.
-    await registerSchemas(sql, MYHEALTH_SCHEMAS);
-    await registerSchemas(sql, APP_TABLE_SCHEMAS);
-    await registerAuxMigrations(sql, APP_ID, MYHEALTH_AUX_MIGRATIONS);
-    await createIceStore(sql).ensure();
-    // Shared-entity spine (person/event/document) + myHealth's medical facet.
-    await createHealthPeople(sql).ensure();
-  } catch (e) {
-    console.warn("shared-db init skipped:", e);
+export function initSharedDb(): Promise<void> {
+  if (!isTauri()) return Promise.resolve();
+  if (!initPromise) {
+    initPromise = (async () => {
+      try {
+        const sql = adapter(await openSharedDb());
+        // Common spine + ICE + facet descriptors, then myHealth's own app tables (the
+        // descriptor-ized legacy tables), then the one-time REAL→INTEGER id repair (must run
+        // before aux-SQL: it may drop+recreate a table, and aux-SQL v4 heals what that drops),
+        // then the dedupe repair, THEN registerSchemas again — registerSchemas's own
+        // field-level-index re-assertion (e.g. the person_key UNIQUE index) is fail-soft
+        // against pre-existing duplicate data, so a corrupted DB's first pass here can't
+        // recreate it; calling it again after dedupeProfileLinks heals it in this SAME
+        // boot instead of needing a second restart. (Idempotent/cheap for the normal,
+        // already-healthy case — every statement is IF NOT EXISTS.) Then the aux-SQL
+        // steps (indexes/triggers/CHECK guards) — order matters throughout.
+        await registerSchemas(sql, MYHEALTH_SCHEMAS);
+        await registerSchemas(sql, APP_TABLE_SCHEMAS);
+        await fixIntegerKeyColumns(sql, APP_TABLE_SCHEMAS);
+        await dedupeProfileLinks(sql, APP_TABLE_SCHEMAS);
+        await registerSchemas(sql, APP_TABLE_SCHEMAS);
+        await registerAuxMigrations(sql, APP_ID, MYHEALTH_AUX_MIGRATIONS);
+        await createIceStore(sql).ensure();
+        // Shared-entity spine (person/event/document) + myHealth's medical facet.
+        await createHealthPeople(sql).ensure();
+      } catch (e) {
+        console.warn("shared-db init skipped:", e);
+      }
+    })();
   }
+  return initPromise;
 }
 
 /**

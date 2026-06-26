@@ -45,8 +45,8 @@ export async function markReminderFired(id: number, today: string): Promise<void
 export async function syncDerivedReminders(desired: DerivedReminder[]): Promise<void> {
   for (const d of desired) {
     await execute(
-      `INSERT INTO ${T.reminders} (profile_id, kind, source, dedupe_key, title, detail, due_date)
-       VALUES (?1, 'derived', ?2, ?3, ?4, ?5, ?6)
+      `INSERT INTO ${T.reminders} (profile_id, kind, source, dedupe_key, title, detail, due_date, status)
+       VALUES (?1, 'derived', ?2, ?3, ?4, ?5, ?6, 'open')
        ON CONFLICT(dedupe_key) DO UPDATE SET
          title = excluded.title,
          detail = excluded.detail,
@@ -104,8 +104,8 @@ export async function createManualReminder(r: {
   due_date: string;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO ${T.reminders} (profile_id, kind, title, detail, due_date)
-     VALUES (?1, 'manual', ?2, ?3, ?4)`,
+    `INSERT INTO ${T.reminders} (profile_id, kind, title, detail, due_date, status)
+     VALUES (?1, 'manual', ?2, ?3, ?4, 'open')`,
     [r.profile_id ?? null, r.title, r.detail ?? null, r.due_date],
   );
   return res.lastInsertId ?? 0;

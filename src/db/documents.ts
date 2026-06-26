@@ -93,8 +93,8 @@ export async function addDocument(d: {
   const sealed = await sealExtractedText(d.extracted_text ?? null, d.file_name);
   const res = await execute(
     `INSERT INTO ${T.documents}
-       (profile_id, doc_type, title, provider, doc_date, file_name, mime, size_bytes, extracted_text_enc)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`,
+       (profile_id, doc_type, title, provider, doc_date, file_name, mime, size_bytes, extracted_text_enc, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`,
     [
       d.profile_id ?? null,
       d.doc_type,
@@ -105,6 +105,7 @@ export async function addDocument(d: {
       d.mime ?? null,
       d.size_bytes ?? null,
       sealed,
+      new Date().toISOString(),
     ],
   );
   return res.lastInsertId ?? 0;

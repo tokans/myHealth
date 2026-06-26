@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { UserPlus, User, Trash2, Activity } from "lucide-react";
 import { getCommonBaked } from "sharedcorelib/masters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,8 +16,20 @@ const RELATIONSHIPS = getCommonBaked("relationship"); // common master, reused (
 
 export default function Profiles() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [show, setShow] = useState(false);
+
+  // The drawer's "Add a profile" shortcut (ProfileDrawer.tsx) navigates here with this
+  // state flag so the add form opens immediately instead of just landing on the list.
+  // Re-checked on every navigation (not just mount) so clicking it again while already on
+  // this page still opens the form; the flag is replaced away so back/forward don't redo it.
+  useEffect(() => {
+    if ((location.state as { openAdd?: boolean } | null)?.openAdd) {
+      setShow(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate]);
   const refreshTier = useTierStore((s) => s.refresh);
   const refreshGating = useGatingStore((s) => s.refresh);
   const refreshProfiles = useProfileStore((s) => s.refresh);

@@ -33,10 +33,7 @@ const notIn = (col: string, values: string[], nullable: boolean): string => {
     : `NEW.${col} NOT IN (${list})`;
 };
 
-export const MYHEALTH_AUX_MIGRATIONS: AuxMigrationStep[] = [
-  {
-    version: 1,
-    sql: [
+const V1_SQL: string[] = [
       // ── composite / covering indexes (legacy 0002–0009 index parity) ────────
       `CREATE INDEX IF NOT EXISTS ix_myhealth_baseline_profile ON myhealth_profile_baseline (profile_id, kind)`,
       `CREATE INDEX IF NOT EXISTS ix_myhealth_metrics_profile_kind ON myhealth_metrics (profile_id, kind, taken_at)`,
@@ -99,15 +96,38 @@ export const MYHEALTH_AUX_MIGRATIONS: AuxMigrationStep[] = [
       `INSERT OR IGNORE INTO myhealth_settings (key, value) VALUES ('date_format', 'DD/MM/YYYY')`,
       `INSERT OR IGNORE INTO myhealth_settings (key, value) VALUES ('units', 'metric')`,
       `INSERT OR IGNORE INTO myhealth_settings (key, value) VALUES ('theme', 'system')`,
-    ],
+];
+
+// v2 — append-only (do NOT edit v1). A covering index on taken_at alone so the
+// tier/gating recompute's `COUNT(DISTINCT substr(taken_at,1,10))` (no WHERE, all
+// profiles) can scan the narrow index instead of the full table. The existing
+// (profile_id, kind, taken_at) index is leftmost-prefixed on profile_id, so it
+// can't serve this unfiltered distinct-day scan.
+const V2_SQL: string[] = [`CREATE INDEX IF NOT EXISTS ix_myhealth_metrics_taken ON myhealth_metrics (taken_at)`];
+
+export const MYHEALTH_AUX_MIGRATIONS: AuxMigrationStep[] = [
+  { version: 1, sql: V1_SQL },
+  { version: 2, sql: V2_SQL },
+  {
+    // v3 — append-only (do NOT edit v1/v2). Re-asserts v1+v2 verbatim (all idempotent
+    // `IF NOT EXISTS`/`OR IGNORE` statements). `fixIntegerKeyColumns` (db/fixIntegerKeyColumns.ts,
+    // run just before this in sharedDb.ts's initSharedDb) recreates any `myhealth_*` table
+    // whose `id` PRIMARY KEY predates the core fix for the REAL-vs-INTEGER bug — dropping +
+    // recreating a table also drops every index/trigger aux-SQL had attached to it, and
+    // since v1/v2 are already recorded as applied they would never re-run on their own.
+    // A no-op for tables that didn't need recreating; heals the ones that did.
+    version: 3,
+    sql: [...V1_SQL, ...V2_SQL],
   },
   {
-    // v2 — append-only (do NOT edit v1). A covering index on taken_at alone so the
-    // tier/gating recompute's `COUNT(DISTINCT substr(taken_at,1,10))` (no WHERE, all
-    // profiles) can scan the narrow index instead of the full table. The existing
-    // (profile_id, kind, taken_at) index is leftmost-prefixed on profile_id, so it
-    // can't serve this unfiltered distinct-day scan.
-    version: 2,
-    sql: [`CREATE INDEX IF NOT EXISTS ix_myhealth_metrics_taken ON myhealth_metrics (taken_at)`],
+    // v4 — append-only (do NOT edit v1/v2/v3). Re-asserts v1+v2 AGAIN. `initSharedDb`
+    // (sharedDb.ts) wasn't yet re-entrant-safe when v3 first ran: React StrictMode's
+    // double-invoked dev effect raced two concurrent `fixIntegerKeyColumns` passes against
+    // each other, and the second pass's drop+recreate undid what v3 had just healed —
+    // *after* v3 was already recorded as applied, so it could never re-run on its own to
+    // heal it a second time. `initSharedDb` is now guarded against this re-entrancy, but
+    // any database that already raced needs one more idempotent re-assertion to recover.
+    version: 4,
+    sql: [...V1_SQL, ...V2_SQL],
   },
 ];

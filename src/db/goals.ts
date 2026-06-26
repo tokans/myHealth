@@ -37,8 +37,8 @@ export async function createGoal(g: {
   target_date?: string | null;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO ${T.goals} (profile_id, kind, title, metric_kind, baseline, target, unit, direction, target_date)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`,
+    `INSERT INTO ${T.goals} (profile_id, kind, title, metric_kind, baseline, target, unit, direction, target_date, status, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'active', ?10)`,
     [
       g.profile_id,
       g.kind,
@@ -49,6 +49,7 @@ export async function createGoal(g: {
       g.unit ?? null,
       g.direction ?? "decrease",
       g.target_date ?? null,
+      new Date().toISOString(),
     ],
   );
   return res.lastInsertId ?? 0;

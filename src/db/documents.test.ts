@@ -63,8 +63,8 @@ describe("addDocument", () => {
     expect(id).toBe(7);
     const [sql, params] = mockExecute.mock.calls[0];
     expect(sql).toContain("INSERT INTO myhealth_documents");
-    // 9th param is the sealed extracted text (null when absent).
-    expect(params).toEqual([null, "bill", "T", null, null, "f", null, null, null]);
+    // 9th param is the sealed extracted text (null when absent); 10th is created_at.
+    expect(params).toEqual([null, "bill", "T", null, null, "f", null, null, null, expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)]);
   });
 
   it("passes through all provided fields and seals extracted text", async () => {
@@ -92,6 +92,7 @@ describe("addDocument", () => {
       "application/pdf",
       1024,
       "scv1:SEALED(WBC 6.1)",
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
     ]);
   });
 

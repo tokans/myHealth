@@ -32,7 +32,11 @@ describe("createGoal", () => {
     expect(id).toBe(10);
     const [sql, params] = mockExecute.mock.calls[0];
     expect(sql).toContain("INSERT INTO myhealth_goals");
-    expect(params).toEqual([1, "weight", "Lose 5kg", null, null, null, null, "decrease", null]);
+    expect(sql).toContain("'active'"); // status is NOT NULL — supplied as a literal, not a param
+    expect(params).toEqual([
+      1, "weight", "Lose 5kg", null, null, null, null, "decrease", null,
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    ]);
   });
 
   it("passes through provided values incl. direction", async () => {
@@ -49,7 +53,10 @@ describe("createGoal", () => {
       target_date: "2026-12-01",
     });
     const [, params] = mockExecute.mock.calls[0];
-    expect(params).toEqual([1, "steps", "Walk more", "steps", 3000, 8000, "steps", "increase", "2026-12-01"]);
+    expect(params).toEqual([
+      1, "steps", "Walk more", "steps", 3000, 8000, "steps", "increase", "2026-12-01",
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    ]);
   });
 
   it("returns 0 when lastInsertId missing", async () => {

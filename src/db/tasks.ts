@@ -54,9 +54,9 @@ export async function createTask(t: {
   reminder_time?: string;
 }): Promise<number> {
   const res = await execute(
-    `INSERT INTO ${T.dailyTasks} (profile_id, title, recurrence, reminder_time)
-     VALUES (?1, ?2, ?3, ?4)`,
-    [t.profile_id, t.title, t.recurrence ?? "daily", t.reminder_time ?? null],
+    `INSERT INTO ${T.dailyTasks} (profile_id, title, recurrence, reminder_time, active, created_at)
+     VALUES (?1, ?2, ?3, ?4, 1, ?5)`,
+    [t.profile_id, t.title, t.recurrence ?? "daily", t.reminder_time ?? null, new Date().toISOString()],
   );
   return res.lastInsertId ?? 0;
 }

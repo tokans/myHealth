@@ -40,7 +40,7 @@ export function ProfileDrawer({
 
   function goAdd() {
     onOpenChange(false);
-    navigate("/profiles");
+    navigate("/profiles", { state: { openAdd: true } });
   }
 
   function goJourney() {
